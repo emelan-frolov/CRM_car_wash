@@ -1,0 +1,360 @@
+.stats-page {
+  padding: 0 1rem;
+}
+
+.stats-tabs {
+  display: flex;
+  gap: 0.5rem;
+  background: #ecf0f1;
+  padding: 0.4rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  width: fit-content;
+}
+
+.stats-tab {
+  padding: 0.6rem 1.5rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #7f8c8d;
+  transition: all 0.2s;
+}
+
+.stats-tab:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.stats-tab.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stats-period {
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stats-period-presets {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stats-period-preset {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.stats-period-preset:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.stats-period-preset.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.stats-period-dates {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.stats-period-dates input[type="date"] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stats-card {
+  background: white;
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #667eea;
+}
+
+.stats-card.green {
+  border-left-color: #27ae60;
+}
+
+.stats-card.orange {
+  border-left-color: #f39c12;
+}
+
+.stats-card.purple {
+  border-left-color: #764ba2;
+}
+
+.stats-card-label {
+  color: #7f8c8d;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-card-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.stats-card-sub {
+  color: #95a5a6;
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
+
+.stats-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.stats-section-title {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+/* Bar chart */
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bar-label {
+  flex: 0 0 200px;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-track {
+  flex: 1;
+  background: #ecf0f1;
+  border-radius: 4px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+}
+
+.bar-fill.green {
+  background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+}
+
+.bar-value {
+  flex: 0 0 auto;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+  min-width: 80px;
+  text-align: right;
+}
+
+/* Hour chart */
+.hour-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  height: 200px;
+  padding: 1rem 0;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.hour-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  height: 100%;
+}
+
+.hour-bar-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.hour-bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  position: relative;
+  transition: height 0.5s ease;
+}
+
+.hour-bar-fill:hover::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2c3e50;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.hour-bar-label {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+}
+
+.hour-bar-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Таблица в статистике */
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stats-table th {
+  text-align: left;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-bottom: 2px solid #e1e8ed;
+}
+
+.stats-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #ecf0f1;
+  font-size: 0.9rem;
+}
+
+.stats-table tr:last-child td {
+  border-bottom: none;
+}
+
+.stats-table tr:hover {
+  background: #f8f9fa;
+}
+
+.stats-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #95a5a6;
+}
+
+.utilization-bar-cell {
+  min-width: 200px;
+}
+
+.utilization-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.utilization-bar-track {
+  flex: 1;
+  background: #ecf0f1;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.utilization-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.utilization-bar-fill.low {
+  background: #e74c3c;
+}
+
+.utilization-bar-fill.medium {
+  background: #f39c12;
+}
+
+.utilization-bar-fill.high {
+  background: #27ae60;
+}
+
+.utilization-percent {
+  font-weight: 600;
+  min-width: 50px;
+  text-align: right;
+}
+
+.salary-amount {
+  font-weight: 600;
+  color: #27ae60;
+}
+
+.status-badge-mini {
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+}
+
+.status-badge-mini.active { background: #27ae60; }
+.status-badge-mini.sick_leave { background: #f39c12; }
+.status-badge-mini.fired { background: #e74c3c; }

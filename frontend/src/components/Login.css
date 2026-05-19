@@ -1,0 +1,140 @@
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1rem;
+}
+
+.login-card {
+    background: white;
+    padding: 2.5rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.login-logo-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+}
+
+.login-logo-image {
+    height: 90px;
+    width: auto;
+    max-width: 300px;
+    object-fit: contain;
+}
+
+.login-card h2 {
+    text-align: center;
+    margin: 0 0 0.25rem 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
+
+.login-subtitle {
+    text-align: center;
+    color: #7f8c8d;
+    margin: 0 0 1.75rem 0;
+    font-size: 0.9rem;
+}
+
+.login-card .form-group {
+    margin-bottom: 1rem;
+}
+
+.login-card label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #2c3e50;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.login-card input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.login-card input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.login-error {
+    background: #fee;
+    color: #c0392b;
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    border-left: 3px solid #e74c3c;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 0.85rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        opacity 0.2s,
+        transform 0.1s;
+    margin-top: 0.5rem;
+}
+
+.login-btn:hover:not(:disabled) {
+    opacity: 0.92;
+}
+
+.login-btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.login-back-btn {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.65rem;
+    background: transparent;
+    color: #7f8c8d;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.login-back-btn:hover {
+    background: #f8f9fa;
+    color: #2c3e50;
+    border-color: #bbb;
+}

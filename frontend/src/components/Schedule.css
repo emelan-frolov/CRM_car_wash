@@ -1,0 +1,479 @@
+.schedule-container {
+  padding: 0 8px;
+  margin: 0;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.schedule-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+  padding: 0;
+  background: white;
+}
+
+.schedule-legend {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.legend-color {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+/* Резервируем место для панели управления */
+.order-control-placeholder {
+  height: 85px;
+  background: transparent;
+  flex-shrink: 0;
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+/* Панель управления заказом */
+.order-control-panel {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 0.5rem 1rem;
+  margin-bottom: 0;
+  margin-top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-radius: 0;
+  height: 85px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.order-control-info {
+  color: white;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1.3;
+  justify-content: center;
+  padding: 0.3rem 0;
+}
+
+.order-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.order-info-row strong {
+  font-weight: 700;
+  margin-right: 0.15rem;
+}
+
+.order-control-buttons {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.order-control-buttons .btn {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: all 0.2s;
+}
+
+.order-control-buttons .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.schedule-wrapper {
+  background: white;
+  overflow: visible;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  margin-top: 0;
+}
+
+.schedule-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Заголовок таблицы */
+.schedule-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: white;
+}
+
+.schedule-table thead tr {
+  border-bottom: 3px solid #2c3e50;
+}
+
+.schedule-table th {
+  padding: 0;
+  background: #f8f9fa;
+  border-bottom: 3px solid #2c3e50;
+}
+
+.box-header-cell {
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  padding: 0.75rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  text-align: center;
+  border-right: 3px solid #2c3e50;
+  position: sticky;
+  left: 0;
+  z-index: 101;
+  background: #f8f9fa;
+}
+
+.timeline-header-cell {
+  padding: 0;
+  position: relative;
+  width: auto;
+}
+
+.timeline-slots {
+  display: flex;
+  width: 100%;
+  position: relative;
+  border-bottom: 2px solid #2c3e50;
+}
+
+.timeline-slot-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.timeline-slot-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(231, 76, 60, 0.25);
+  pointer-events: none;
+  z-index: 0;
+  border: 2px solid rgba(231, 76, 60, 0.4);
+}
+
+.time-slot {
+  position: relative;
+  padding: 0;
+  padding-top: 0.25rem;
+  text-align: left;
+  margin-left: -8px; /* Сдвигаем числа левее */
+  font-size: 0.7rem;
+  color: #2c3e50;
+  font-weight: 500;
+  white-space: nowrap;
+  padding-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  z-index: 1;
+  background: transparent;
+  width: 100%;
+}
+
+.time-slot.current-time {
+  background-color: transparent;
+}
+
+.time-slot::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px; /* Компенсируем сдвиг текста, чтобы риска осталась на месте */
+  width: 1px;
+  height: 8px;
+  background-color: #7f8c8d;
+}
+
+.time-slot.hour-mark {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #2c3e50;
+  padding-top: 0.1rem; /* Приподнимаем жирные числа */
+}
+
+.time-slot.hour-mark::after {
+  height: 16px;
+  width: 2px;
+  background-color: #2c3e50;
+}
+
+/* Строки боксов */
+.schedule-table tbody tr {
+  border-bottom: 1px solid #e1e8ed;
+  transition: background-color 0.2s;
+}
+
+.schedule-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.box-name-cell {
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  padding: 1rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #2c3e50;
+  text-align: center;
+  border-right: 3px solid #2c3e50;
+  background: white !important;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  vertical-align: middle;
+}
+
+.box-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.1rem;
+}
+
+.box-employee {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: #2c3e50;
+  margin-top: 0;
+  line-height: 1.2;
+}
+
+.timeline-cell {
+  padding: 0;
+  position: relative;
+  height: 100px;
+  background: white;
+}
+
+.timeline-grid {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden; /* Обрезаем заказы по границам */
+}
+
+.grid-slot-wrapper {
+  flex: 1;
+  position: relative;
+  height: 100%;
+}
+
+.grid-slot {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.grid-slot::after {
+  content: '';
+  position: absolute;
+  left: 0; /* Линия на ЛЕВОЙ границе ячейки */
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #e8ecef;
+}
+
+.grid-slot.hour-mark::after {
+  width: 2px;
+  background-color: #d1d8dd;
+}
+
+/* Карточки заказов */
+.order-card {
+  position: absolute;
+  top: 15px;
+  height: 70px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  z-index: 5;
+  border: 2px solid rgba(255,255,255,0.3);
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Неоплаченный заказ - красная обводка */
+.order-card.order-unpaid {
+  border: 3px solid #e74c3c;
+  box-shadow: 0 3px 10px rgba(231, 76, 60, 0.4);
+}
+
+.order-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  z-index: 50;
+}
+
+/* Просроченный заказ - мигающий эффект */
+.order-card.order-overdue {
+  animation: overdueFlash 6s ease-in-out infinite;
+}
+
+@keyframes overdueFlash {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.order-card-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.25);
+  transition: width 1s linear;
+  pointer-events: none;
+  animation: progressShimmer 2s ease-in-out infinite;
+}
+
+@keyframes progressShimmer {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.order-card-content {
+  position: relative;
+  padding: 0;
+  color: white;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.order-plate {
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  text-align: center;
+}
+
+/* Индикатор текущего времени */
+.current-time-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e74c3c;
+  z-index: 90;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
+}
+
+/* Пустое состояние */
+.empty-schedule {
+  text-align: center;
+  padding: 3rem;
+  color: #7f8c8d;
+}
+
+.empty-schedule-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.empty-schedule-text {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty-schedule-hint {
+  font-size: 0.9rem;
+  color: #95a5a6;
+}
+
+/* Скроллбар */
+.schedule-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.schedule-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.schedule-wrapper::-webkit-scrollbar-thumb {
+  background: #bdc3c7;
+  border-radius: 4px;
+}
+
+.schedule-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #95a5a6;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .schedule-table {
+    min-width: 100%;
+  }
+  
+  .box-name-cell {
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+    font-size: 1.5rem;
+  }
+  
+  .box-header-cell {
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+  }
+  
+  .order-card {
+    height: 80px;
+  }
+  
+  .timeline-cell {
+    height: 110px;
+  }
+}

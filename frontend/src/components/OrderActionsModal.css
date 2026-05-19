@@ -1,0 +1,77 @@
+.order-actions-modal {
+  max-width: 600px;
+  width: 90%;
+}
+
+.order-info {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.order-info h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.order-info p {
+  margin: 0.5rem 0;
+  color: #34495e;
+}
+
+.order-info strong {
+  color: #2c3e50;
+  margin-right: 0.5rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-direction: column;
+}
+
+.btn-large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.order-finished-message {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
+  font-size: 1.1rem;
+}
+
+.payment-confirm {
+  text-align: center;
+}
+
+.payment-confirm h3 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.payment-confirm p {
+  color: #7f8c8d;
+  margin-bottom: 2rem;
+}
+
+.payment-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-secondary {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #7f8c8d;
+}

@@ -1,0 +1,62 @@
+/* Кнопка экспорта с прогресс-заливкой */
+.export-progress-btn {
+  position: relative;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #27ae60;
+  background: white;
+  color: #27ae60;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, color 0.2s;
+  min-width: 220px;
+}
+
+/* Когда не идёт экспорт и не disabled - наведение делает кнопку зелёной */
+.export-progress-btn:not(.exporting):not(:disabled):hover {
+  background: #27ae60;
+}
+
+.export-progress-btn:not(.exporting):not(:disabled):hover .export-btn-content {
+  color: white;
+}
+
+/* Когда идёт экспорт (кнопка отмены) - наведение делает рамку красной */
+.export-progress-btn.exporting:hover {
+  border-color: #e74c3c;
+}
+
+.export-progress-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Заливка прогрессом - линейная анимация для равномерности */
+.export-progress-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: var(--progress, 0%);
+  background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+  transition: width 0.3s linear;
+  z-index: 0;
+}
+
+/* Контент кнопки поверх заливки */
+.export-btn-content {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  color: #27ae60;
+  transition: color 0.2s;
+}
+
+/* Когда экспортируется - текст белый поверх зелёной заливки */
+.export-progress-btn.exporting .export-btn-content {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
