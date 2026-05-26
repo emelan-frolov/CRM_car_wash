@@ -219,7 +219,7 @@ function Booking() {
     }
 
     try {
-
+      // Создание или получение клиента
       let clientId = clientData.id;
       if (!clientId) {
         if (!clientData.first_name || !clientData.last_name) {
@@ -227,26 +227,44 @@ function Booking() {
           setStep(1);
           return;
         }
-        const clientResponse = await axios.post(`${API_URL}/clients`, {
-          first_name: clientData.first_name,
-          last_name: clientData.last_name,
-          middle_name: clientData.middle_name,
-          phone: getCleanPhoneNumber(clientPhone),
-          email: clientData.email
-        });
-        clientId = clientResponse.data.id;
+        try {
+          const clientResponse = await axios.post(`${API_URL}/clients`, {
+            first_name: clientData.first_name,
+            last_name: clientData.last_name,
+            middle_name: clientData.middle_name,
+            phone: getCleanPhoneNumber(clientPhone),
+            email: clientData.email
+          });
+          clientId = clientResponse.data.id;
+        } catch (clientError) {
+          if (clientError.response?.status === 409 && clientError.response?.data?.existing_client) {
+            clientId = clientError.response.data.existing_client.id;
+            console.log('Используется существующий клиент:', clientId);
+          } else {
+            throw clientError;
+          }
+        }
       }
 
-
+      // Создание или получение автомобиля
       let carId = carData.id;
       if (!carId) {
-        const carResponse = await axios.post(`${API_URL}/cars`, {
-          license_plate: carLicensePlate,
-          brand: carData.brand,
-          model: carData.model,
-          color: carData.color
-        });
-        carId = carResponse.data.id;
+        try {
+          const carResponse = await axios.post(`${API_URL}/cars`, {
+            license_plate: carLicensePlate,
+            brand: carData.brand,
+            model: carData.model,
+            color: carData.color
+          });
+          carId = carResponse.data.id;
+        } catch (carError) {
+          if (carError.response?.status === 409 && carError.response?.data?.existing_car) {
+            carId = carError.response.data.existing_car.id;
+            console.log('Используется существующий автомобиль:', carId);
+          } else {
+            throw carError;
+          }
+        }
       }
 
       const scheduledDateTime = `${formData.selected_date}T${formData.selected_time}:00`;
@@ -262,7 +280,7 @@ function Booking() {
 
       alert('Запись успешно создана!');
 
-
+      // Сброс формы
       setClientPhone('');
       setClientFound(false);
       setClientData({ id: null, first_name: '', last_name: '', middle_name: '', email: '' });

@@ -198,32 +198,50 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
     }
 
     try {
-
+      // Создание или получение клиента
       let clientId = clientData.id;
       if (!clientId) {
-        const clientResponse = await axios.post(`${API_URL}/clients`, {
-          first_name: clientData.first_name,
-          last_name: clientData.last_name,
-          middle_name: clientData.middle_name,
-          phone: getCleanPhoneNumber(clientPhone),
-          email: clientData.email
-        });
-        clientId = clientResponse.data.id;
+        try {
+          const clientResponse = await axios.post(`${API_URL}/clients`, {
+            first_name: clientData.first_name,
+            last_name: clientData.last_name,
+            middle_name: clientData.middle_name,
+            phone: getCleanPhoneNumber(clientPhone),
+            email: clientData.email
+          });
+          clientId = clientResponse.data.id;
+        } catch (clientError) {
+          if (clientError.response?.status === 409 && clientError.response?.data?.existing_client) {
+            clientId = clientError.response.data.existing_client.id;
+            console.log('Используется существующий клиент:', clientId);
+          } else {
+            throw clientError;
+          }
+        }
       }
 
-
+      // Создание или получение автомобиля
       let carId = carData.id;
       if (!carId) {
-        const carResponse = await axios.post(`${API_URL}/cars`, {
-          license_plate: carLicensePlate,
-          brand: carData.brand,
-          model: carData.model,
-          color: carData.color
-        });
-        carId = carResponse.data.id;
+        try {
+          const carResponse = await axios.post(`${API_URL}/cars`, {
+            license_plate: carLicensePlate,
+            brand: carData.brand,
+            model: carData.model,
+            color: carData.color
+          });
+          carId = carResponse.data.id;
+        } catch (carError) {
+          if (carError.response?.status === 409 && carError.response?.data?.existing_car) {
+            carId = carError.response.data.existing_car.id;
+            console.log('Используется существующий автомобиль:', carId);
+          } else {
+            throw carError;
+          }
+        }
       }
 
-
+      // Создание заказа
       await axios.post(`${API_URL}/orders`, {
         client_id: clientId,
         car_id: carId,
@@ -233,7 +251,6 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
         notes: orderData.notes,
         status: 'pending'
       });
-
 
       onSuccess();
       handleClose();
