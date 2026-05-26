@@ -82,7 +82,7 @@
   border-bottom: none;
 }
 
-/* Стили для скроллбара */
+
 .select-dropdown::-webkit-scrollbar {
   width: 6px;
 }
@@ -100,12 +100,12 @@
   background: #a8a8a8;
 }
 
-/* Адаптивность */
+
 @media (max-width: 768px) {
   .car-selector .form-group {
     grid-template-columns: 1fr;
   }
-  
+
   .select-dropdown {
     max-height: 150px;
   }

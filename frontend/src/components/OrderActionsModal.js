@@ -64,17 +64,17 @@ function OrderActionsModal({ order, isOpen, onClose, onComplete, onCancel, onDel
             <div className="action-buttons">
               {order.status !== 'completed' && order.status !== 'cancelled' && (
                 <>
-                  <button 
+                  <button
                     className="btn btn-success btn-large"
                     onClick={handleCompleteClick}
                   >
-                    ✓ Завершить заказ
+                    Завершить заказ
                   </button>
-                  <button 
+                  <button
                     className="btn btn-danger btn-large"
                     onClick={handleCancelClick}
                   >
-                    ✗ Отменить заказ
+                    Отменить заказ
                   </button>
                 </>
               )}
@@ -83,15 +83,15 @@ function OrderActionsModal({ order, isOpen, onClose, onComplete, onCancel, onDel
                   Заказ уже {order.status === 'completed' ? 'завершен' : 'отменен'}
                 </p>
               )}
-              
-              {/* Кнопка удаления всегда доступна */}
+
+
               <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #ddd' }}>
-                <button 
+                <button
                   className="btn btn-danger btn-large"
                   onClick={handleDeleteClick}
                   style={{ width: '100%', backgroundColor: '#c0392b' }}
                 >
-                  🗑️ Удалить заказ навсегда
+                  Удалить заказ навсегда
                 </button>
                 <p style={{ fontSize: '0.85rem', color: '#7f8c8d', marginTop: '0.5rem', textAlign: 'center' }}>
                   Это действие нельзя отменить
@@ -100,23 +100,23 @@ function OrderActionsModal({ order, isOpen, onClose, onComplete, onCancel, onDel
             </div>
           ) : (
             <div className="payment-confirm">
-              <h3>Заказ оплачен?</h3>
+              <h3>Заказ оплачен-</h3>
               <p>Укажите был ли оплачен заказ для учета выручки</p>
               <div className="payment-buttons">
-                <button 
+                <button
                   className="btn btn-success btn-large"
                   onClick={() => handlePaymentResponse(true)}
                 >
-                  ✓ Да, оплачен
+                  Да, оплачен
                 </button>
-                <button 
+                <button
                   className="btn btn-danger btn-large"
                   onClick={() => handlePaymentResponse(false)}
                 >
-                  ✗ Нет, не оплачен
+                  Нет, не оплачен
                 </button>
               </div>
-              <button 
+              <button
                 className="btn btn-secondary"
                 onClick={() => setShowPaymentConfirm(false)}
                 style={{ marginTop: '1rem' }}

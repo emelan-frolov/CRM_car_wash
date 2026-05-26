@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import api from "../api";
+import axios from "axios";
 import { hasPermission } from "../auth";
+
+const API_URL = "http://localhost:5000/api";
 
 function Positions() {
   const [positions, setPositions] = useState([]);
@@ -20,7 +22,7 @@ function Positions() {
 
   const loadPositions = async () => {
     try {
-      const response = await api.get(`/positions`);
+      const response = await axios.get(`${API_URL}/positions`);
       setPositions(response.data);
       setLoading(false);
     } catch (error) {
@@ -38,10 +40,10 @@ function Positions() {
         can_manage_system: !!formData.can_manage_system,
       };
       if (editingPosition) {
-        await api.put(`/positions/${editingPosition.id}`, payload);
+        await axios.put(`${API_URL}/positions/${editingPosition.id}`, payload);
         setEditingPosition(null);
       } else {
-        await api.post(`/positions`, payload);
+        await axios.post(`${API_URL}/positions`, payload);
       }
       setFormData({ name: "", salary: "", can_manage_system: false });
       setShowForm(false);
@@ -72,11 +74,11 @@ function Positions() {
   const handleDelete = async (id) => {
     if (
       window.confirm(
-        "Удалить должность? Это возможно только если нет сотрудников с этой должностью.",
+        "Удалить должность- Это возможно только если нет сотрудников с этой должностью.",
       )
     ) {
       try {
-        await api.delete(`/positions/${id}`);
+        await axios.delete(`${API_URL}/positions/${id}`);
         setSelectedPosition(null);
         loadPositions();
       } catch (error) {
@@ -255,7 +257,7 @@ function Positions() {
                         Да
                       </span>
                     ) : (
-                      <span style={{ color: "#95a5a6" }}>—</span>
+                      <span style={{ color: "#95a5a6" }}>-</span>
                     )}
                   </td>
                   <td>

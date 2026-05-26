@@ -1,54 +1,54 @@
+from datetime import datetime, timedelta
+from io import BytesIO
 import json
 import os
 import threading
 import time as _time
 import uuid
-from datetime import datetime, timedelta
-from io import BytesIO
 
 from flask import Blueprint, jsonify, request, send_file
 
 from excel_export import generate_orders_excel
-from extensions import db
+from extensions import get_process_executor
 from models import Order
-from utils import get_process_executor
 
-bp = Blueprint("exports", __name__)
 
-EXPORT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "exports")
-# Fallback: if the path doesn't exist, use path relative to this file's parent
-if not os.path.exists(EXPORT_DIR):
-    EXPORT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "exports")
-    EXPORT_DIR = os.path.normpath(EXPORT_DIR)
+bp = Blueprint("export", __name__)
+
+
+EXPORT_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "exports"
+)
 EXPORT_META_FILE = os.path.join(EXPORT_DIR, "_jobs.json")
-os.makedirs(EXPORT_DIR, exist_ok=True)
 
 _export_jobs_lock = threading.Lock()
 _active_futures = {}
 
 
+def _ensure_export_dir():
+    os.makedirs(EXPORT_DIR, exist_ok=True)
+
+
 def _load_jobs():
-    """Загружает все задачи из файла."""
     try:
         if os.path.exists(EXPORT_META_FILE):
             with open(EXPORT_META_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
-        print(f"Ошибка чтения {EXPORT_META_FILE}: {e}")
+        print(f"Ошибка чтения {EXPORT_META_FILE }: {e }")
     return {}
 
 
 def _save_jobs(jobs):
-    """Сохраняет все задачи в файл."""
     try:
+        _ensure_export_dir()
         with open(EXPORT_META_FILE, "w", encoding="utf-8") as f:
             json.dump(jobs, f, ensure_ascii=False)
     except Exception as e:
-        print(f"Ошибка записи {EXPORT_META_FILE}: {e}")
+        print(f"Ошибка записи {EXPORT_META_FILE }: {e }")
 
 
 def _update_job(job_id, **updates):
-    """Атомарно обновляет поля задачи."""
     with _export_jobs_lock:
         jobs = _load_jobs()
         if job_id in jobs:
@@ -57,14 +57,12 @@ def _update_job(job_id, **updates):
 
 
 def _get_job(job_id):
-    """Получает задачу по id."""
     with _export_jobs_lock:
         jobs = _load_jobs()
         return jobs.get(job_id)
 
 
 def _delete_job(job_id):
-    """Удаляет задачу и связанный файл."""
     with _export_jobs_lock:
         jobs = _load_jobs()
         job = jobs.pop(job_id, None)
@@ -80,7 +78,6 @@ def _delete_job(job_id):
 
 
 def _cleanup_old_jobs():
-    """Удаляет завершённые задачи старше 30 минут и зависшие старше 30 минут."""
     with _export_jobs_lock:
         jobs = _load_jobs()
         now = _time.time()
@@ -104,7 +101,6 @@ def _cleanup_old_jobs():
 
 
 def _run_export_job(job_id, orders_data):
-    """Запускает генерацию Excel в дочернем процессе и обновляет прогресс."""
     try:
         future = get_process_executor().submit(generate_orders_excel, orders_data)
         _active_futures[job_id] = future
@@ -135,7 +131,8 @@ def _run_export_job(job_id, orders_data):
             _active_futures.pop(job_id, None)
             return
 
-        file_path = os.path.join(EXPORT_DIR, f"{job_id}.xlsx")
+        _ensure_export_dir()
+        file_path = os.path.join(EXPORT_DIR, f"{job_id }.xlsx")
         with open(file_path, "wb") as f:
             f.write(excel_bytes)
 
@@ -152,7 +149,6 @@ def _run_export_job(job_id, orders_data):
 
 @bp.route("/api/orders/export/start", methods=["POST"])
 def start_export():
-    """Запускает фоновый экспорт. Возвращает job_id для отслеживания."""
     _cleanup_old_jobs()
 
     data = request.json or {}
@@ -180,7 +176,7 @@ def start_export():
     orders_data = [order.to_dict() for order in orders]
 
     job_id = str(uuid.uuid4())
-    filename = f"orders_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    filename = f"orders_export_{datetime .now ().strftime ('%Y%m%d_%H%M%S')}.xlsx"
 
     with _export_jobs_lock:
         jobs = _load_jobs()
@@ -206,7 +202,6 @@ def start_export():
 
 @bp.route("/api/orders/export/status/<job_id>", methods=["GET"])
 def export_status(job_id):
-    """Возвращает текущий статус экспорта."""
     job = _get_job(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
@@ -225,7 +220,6 @@ def export_status(job_id):
 
 @bp.route("/api/orders/export/download/<job_id>", methods=["GET"])
 def export_download(job_id):
-    """Скачивает готовый файл."""
     job = _get_job(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
@@ -254,7 +248,6 @@ def export_download(job_id):
 
 @bp.route("/api/orders/export/cancel/<job_id>", methods=["POST"])
 def export_cancel(job_id):
-    """Отменяет экспорт."""
     job = _get_job(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
@@ -277,7 +270,7 @@ def export_cancel(job_id):
 
 @bp.route("/api/orders/export", methods=["GET"])
 def export_orders():
-    """Экспорт заказов в Excel (синхронный, для совместимости)."""
+
     start_date_str = request.args.get("start_date")
     end_date_str = request.args.get("end_date")
 
@@ -288,18 +281,23 @@ def export_orders():
             start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
             query = query.filter(Order.created_at >= start_dt)
         except ValueError:
-            return jsonify(
-                {"error": "Неверный формат start_date. Используйте YYYY-MM-DD"}
-            ), 400
+            return (
+                jsonify(
+                    {"error": "Неверный формат start_date. Используйте YYYY-MM-DD"}
+                ),
+                400,
+            )
 
     if end_date_str:
         try:
+
             end_dt = datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1)
             query = query.filter(Order.created_at < end_dt)
         except ValueError:
-            return jsonify(
-                {"error": "Неверный формат end_date. Используйте YYYY-MM-DD"}
-            ), 400
+            return (
+                jsonify({"error": "Неверный формат end_date. Используйте YYYY-MM-DD"}),
+                400,
+            )
 
     orders = query.order_by(Order.created_at.desc()).all()
     orders_data = [order.to_dict() for order in orders]
@@ -311,10 +309,10 @@ def export_orders():
         import traceback
 
         traceback.print_exc()
-        return jsonify({"error": f"Ошибка генерации Excel: {str(e)}"}), 500
+        return jsonify({"error": f"Ошибка генерации Excel: {str (e )}"}), 500
 
     output = BytesIO(excel_bytes)
-    filename = f"orders_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    filename = f"orders_export_{datetime .now ().strftime ('%Y%m%d_%H%M%S')}.xlsx"
 
     return send_file(
         output,

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import axios from 'axios';
 import './Booking.css';
 import CarSelector from './CarSelector';
 import './CarSelector.css';
 
+const API_URL = 'http://localhost:5000/api';
+
+
 const formatPhoneNumber = (value) => {
   const cleaned = value.replace(/\D/g, '');
   const limited = cleaned.slice(0, 11);
-  
+
   if (limited.length === 0) return '';
   if (limited.length <= 1) return limited;
   if (limited.length <= 4) return `${limited[0]} (${limited.slice(1)}`;
@@ -21,14 +24,14 @@ const getCleanPhoneNumber = (formatted) => {
 };
 
 function Booking() {
-  const [step, setStep] = useState(1); // 1: клиент, 2: услуги, 3: календарь, 4: время
+  const [step, setStep] = useState(1);
   const [services, setServices] = useState([]);
   const [availability, setAvailability] = useState([]);
   const [timeSlots, setTimeSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  // Данные клиента
+
+
   const [clientPhone, setClientPhone] = useState('');
   const [clientFound, setClientFound] = useState(false);
   const [clientData, setClientData] = useState({
@@ -39,7 +42,7 @@ function Booking() {
     email: ''
   });
 
-  // Данные автомобиля
+
   const [carLicensePlate, setCarLicensePlate] = useState('');
   const [carFound, setCarFound] = useState(false);
   const [carData, setCarData] = useState({
@@ -48,7 +51,7 @@ function Booking() {
     model: '',
     color: ''
   });
-  
+
   const [formData, setFormData] = useState({
     selected_services: [],
     selected_date: null,
@@ -63,7 +66,7 @@ function Booking() {
 
   const loadServices = async () => {
     try {
-      const response = await api.get(`/services`);
+      const response = await axios.get(`${API_URL}/services`);
       setServices(response.data);
     } catch (error) {
       console.error('Ошибка загрузки услуг:', error);
@@ -78,7 +81,9 @@ function Booking() {
 
     try {
       const cleanPhone = getCleanPhoneNumber(clientPhone);
-      const response = await api.get(`/clients/search?phone=${cleanPhone}`);
+      const response = await axios.get(`${API_URL}/clients/search`, {
+        params: { phone: cleanPhone }
+      });
       setClientData({
         id: response.data.id,
         first_name: response.data.first_name,
@@ -112,7 +117,9 @@ function Booking() {
     }
 
     try {
-      const response = await api.get(`/cars/search?license_plate=${carLicensePlate}`);
+      const response = await axios.get(`${API_URL}/cars/search`, {
+        params: { license_plate: carLicensePlate.trim().toUpperCase() }
+      });
       setCarData({
         id: response.data.id,
         brand: response.data.brand || '',
@@ -140,7 +147,7 @@ function Booking() {
   const loadAvailability = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/booking/availability`);
+      const response = await axios.get(`${API_URL}/booking/availability`);
       setAvailability(response.data);
     } catch (error) {
       console.error('Ошибка загрузки доступности:', error);
@@ -167,11 +174,11 @@ function Booking() {
         return;
       }
 
-      const response = await api.post(`/booking/timeslots`, {
+      const response = await axios.post(`${API_URL}/booking/timeslots`, {
         date: date,
         total_duration: totalDuration
       });
-      
+
       console.log('Получены слоты:', response.data);
       setTimeSlots(response.data.available_slots);
       setError('');
@@ -205,14 +212,14 @@ function Booking() {
   };
 
   const handleSubmit = async () => {
-    if (formData.selected_services.length === 0 || !formData.selected_date || 
+    if (formData.selected_services.length === 0 || !formData.selected_date ||
         !formData.selected_time || !formData.selected_box_id) {
       alert('Заполните все обязательные поля');
       return;
     }
 
     try {
-      // 1. Создать или получить клиента
+
       let clientId = clientData.id;
       if (!clientId) {
         if (!clientData.first_name || !clientData.last_name) {
@@ -220,7 +227,7 @@ function Booking() {
           setStep(1);
           return;
         }
-        const clientResponse = await api.post(`/clients`, {
+        const clientResponse = await axios.post(`${API_URL}/clients`, {
           first_name: clientData.first_name,
           last_name: clientData.last_name,
           middle_name: clientData.middle_name,
@@ -230,10 +237,10 @@ function Booking() {
         clientId = clientResponse.data.id;
       }
 
-      // 2. Создать или получить автомобиль
+
       let carId = carData.id;
       if (!carId) {
-        const carResponse = await api.post(`/cars`, {
+        const carResponse = await axios.post(`${API_URL}/cars`, {
           license_plate: carLicensePlate,
           brand: carData.brand,
           model: carData.model,
@@ -243,8 +250,8 @@ function Booking() {
       }
 
       const scheduledDateTime = `${formData.selected_date}T${formData.selected_time}:00`;
-      
-      await api.post(`/orders`, {
+
+      await axios.post(`${API_URL}/orders`, {
         client_id: clientId,
         car_id: carId,
         service_ids: formData.selected_services,
@@ -254,8 +261,8 @@ function Booking() {
       });
 
       alert('Запись успешно создана!');
-      
-      // Сброс формы
+
+
       setClientPhone('');
       setClientFound(false);
       setClientData({ id: null, first_name: '', last_name: '', middle_name: '', email: '' });
@@ -319,7 +326,7 @@ function Booking() {
     <div className="booking-container">
       <h2 className="page-title">Запись на будущее</h2>
 
-      {/* Прогресс */}
+
       <div className="booking-progress">
         <div className={`progress-step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
           <div className="step-number">1</div>
@@ -342,23 +349,23 @@ function Booking() {
         </div>
       </div>
 
-      {/* Шаг 1: Выбор клиента и автомобиля */}
+
       {step === 1 && (
         <div className="card">
           <h3>Шаг 1: Клиент и автомобиль</h3>
-          
-          {error && <div className="error-message" style={{ 
-            padding: '1rem', 
-            background: '#fee', 
-            color: '#c00', 
+
+          {error && <div className="error-message" style={{
+            padding: '1rem',
+            background: '#fee',
+            color: '#c00',
             borderRadius: '6px',
             marginBottom: '1rem'
           }}>{error}</div>}
 
-          {/* Секция: Клиент */}
+
           <div className="form-section" style={{ marginBottom: '2rem' }}>
             <h4 style={{ marginBottom: '1rem', color: '#2c3e50' }}>Клиент</h4>
-            
+
             <div className="search-group" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
               <input
                 type="tel"
@@ -374,10 +381,10 @@ function Booking() {
             </div>
 
             {clientFound && (
-              <div style={{ 
-                padding: '0.75rem', 
-                background: '#d4edda', 
-                color: '#155724', 
+              <div style={{
+                padding: '0.75rem',
+                background: '#d4edda',
+                color: '#155724',
                 borderRadius: '6px',
                 marginBottom: '1rem',
                 border: '1px solid #c3e6cb'
@@ -387,10 +394,10 @@ function Booking() {
             )}
 
             {clientPhone && !clientFound && clientData.first_name === '' && (
-              <div style={{ 
-                padding: '0.75rem', 
-                background: '#d1ecf1', 
-                color: '#0c5460', 
+              <div style={{
+                padding: '0.75rem',
+                background: '#d1ecf1',
+                color: '#0c5460',
                 borderRadius: '6px',
                 marginBottom: '1rem',
                 border: '1px solid #bee5eb'
@@ -408,10 +415,10 @@ function Booking() {
                   value={clientData.last_name}
                   onChange={(e) => setClientData({ ...clientData, last_name: e.target.value })}
                   disabled={clientFound}
-                  style={{ 
-                    padding: '0.75rem', 
-                    fontSize: '1rem', 
-                    border: '1px solid #ddd', 
+                  style={{
+                    padding: '0.75rem',
+                    fontSize: '1rem',
+                    border: '1px solid #ddd',
                     borderRadius: '6px',
                     width: '100%',
                     background: clientFound ? '#f5f5f5' : 'white'
@@ -426,10 +433,10 @@ function Booking() {
                   value={clientData.first_name}
                   onChange={(e) => setClientData({ ...clientData, first_name: e.target.value })}
                   disabled={clientFound}
-                  style={{ 
-                    padding: '0.75rem', 
-                    fontSize: '1rem', 
-                    border: '1px solid #ddd', 
+                  style={{
+                    padding: '0.75rem',
+                    fontSize: '1rem',
+                    border: '1px solid #ddd',
                     borderRadius: '6px',
                     width: '100%',
                     background: clientFound ? '#f5f5f5' : 'white'
@@ -443,10 +450,10 @@ function Booking() {
                   value={clientData.middle_name}
                   onChange={(e) => setClientData({ ...clientData, middle_name: e.target.value })}
                   disabled={clientFound}
-                  style={{ 
-                    padding: '0.75rem', 
-                    fontSize: '1rem', 
-                    border: '1px solid #ddd', 
+                  style={{
+                    padding: '0.75rem',
+                    fontSize: '1rem',
+                    border: '1px solid #ddd',
                     borderRadius: '6px',
                     width: '100%',
                     background: clientFound ? '#f5f5f5' : 'white'
@@ -462,10 +469,10 @@ function Booking() {
                 value={clientData.email}
                 onChange={(e) => setClientData({ ...clientData, email: e.target.value })}
                 disabled={clientFound}
-                style={{ 
-                  padding: '0.75rem', 
-                  fontSize: '1rem', 
-                  border: '1px solid #ddd', 
+                style={{
+                  padding: '0.75rem',
+                  fontSize: '1rem',
+                  border: '1px solid #ddd',
                   borderRadius: '6px',
                   width: '100%',
                   background: clientFound ? '#f5f5f5' : 'white'
@@ -474,10 +481,10 @@ function Booking() {
             </div>
           </div>
 
-          {/* Секция: Автомобиль */}
+
           <div className="form-section">
             <h4 style={{ marginBottom: '1rem', color: '#2c3e50' }}>Автомобиль</h4>
-            
+
             <div className="search-group" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
               <input
                 type="text"
@@ -493,10 +500,10 @@ function Booking() {
             </div>
 
             {carFound && (
-              <div style={{ 
-                padding: '0.75rem', 
-                background: '#d4edda', 
-                color: '#155724', 
+              <div style={{
+                padding: '0.75rem',
+                background: '#d4edda',
+                color: '#155724',
                 borderRadius: '6px',
                 marginBottom: '1rem',
                 border: '1px solid #c3e6cb'
@@ -506,10 +513,10 @@ function Booking() {
             )}
 
             {carLicensePlate && !carFound && carData.brand === '' && (
-              <div style={{ 
-                padding: '0.75rem', 
-                background: '#d1ecf1', 
-                color: '#0c5460', 
+              <div style={{
+                padding: '0.75rem',
+                background: '#d1ecf1',
+                color: '#0c5460',
                 borderRadius: '6px',
                 marginBottom: '1rem',
                 border: '1px solid #bee5eb'
@@ -518,7 +525,7 @@ function Booking() {
               </div>
             )}
 
-            {/* Выбор марки и модели - ВСЕГДА показываем для нового автомобиля */}
+
             {!carFound && (
               <>
                 <div style={{ marginBottom: '1rem' }}>
@@ -540,10 +547,10 @@ function Booking() {
                       value={carData.brand}
                       onChange={(e) => setCarData({ ...carData, brand: e.target.value })}
                       disabled={carFound}
-                      style={{ 
-                        padding: '0.75rem', 
-                        fontSize: '1rem', 
-                        border: '1px solid #ddd', 
+                      style={{
+                        padding: '0.75rem',
+                        fontSize: '1rem',
+                        border: '1px solid #ddd',
                         borderRadius: '6px',
                         width: '100%',
                         background: carFound ? '#f5f5f5' : 'white'
@@ -558,10 +565,10 @@ function Booking() {
                       value={carData.model}
                       onChange={(e) => setCarData({ ...carData, model: e.target.value })}
                       disabled={carFound}
-                      style={{ 
-                        padding: '0.75rem', 
-                        fontSize: '1rem', 
-                        border: '1px solid #ddd', 
+                      style={{
+                        padding: '0.75rem',
+                        fontSize: '1rem',
+                        border: '1px solid #ddd',
                         borderRadius: '6px',
                         width: '100%',
                         background: carFound ? '#f5f5f5' : 'white'
@@ -576,10 +583,10 @@ function Booking() {
                       value={carData.color}
                       onChange={(e) => setCarData({ ...carData, color: e.target.value })}
                       disabled={carFound}
-                      style={{ 
-                        padding: '0.75rem', 
-                        fontSize: '1rem', 
-                        border: '1px solid #ddd', 
+                      style={{
+                        padding: '0.75rem',
+                        fontSize: '1rem',
+                        border: '1px solid #ddd',
                         borderRadius: '6px',
                         width: '100%',
                         background: carFound ? '#f5f5f5' : 'white'
@@ -590,11 +597,11 @@ function Booking() {
               </>
             )}
 
-            {/* Отображение данных найденного автомобиля */}
+
             {carFound && (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(3, 1fr)', 
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '1rem',
                 marginBottom: '1rem',
                 padding: '1rem',
@@ -624,7 +631,7 @@ function Booking() {
             )}
           </div>
 
-          <button 
+          <button
             className="btn btn-primary btn-large"
             onClick={() => setStep(2)}
             disabled={!clientPhone || !carLicensePlate || (!clientFound && (!clientData.first_name || !clientData.last_name))}
@@ -635,11 +642,11 @@ function Booking() {
         </div>
       )}
 
-      {/* Шаг 2: Выбор услуг */}
+
       {step === 2 && (
         <div className="card">
           <h3>Шаг 2: Выберите услуги</h3>
-          
+
           <div className="services-list">
             {services.map(service => (
               <div
@@ -647,9 +654,7 @@ function Booking() {
                 className={`service-item ${formData.selected_services.includes(service.id) ? 'selected' : ''}`}
                 onClick={() => handleServiceToggle(service.id)}
               >
-                <div className="service-checkbox">
-                  {formData.selected_services.includes(service.id) && '✓'}
-                </div>
+                <div className="service-checkbox"></div>
                 <div className="service-info">
                   <div className="service-name">{service.name}</div>
                   <div className="service-details">
@@ -680,7 +685,7 @@ function Booking() {
             <button className="btn btn-secondary" onClick={() => setStep(1)}>
               ← Назад
             </button>
-            <button 
+            <button
               className="btn btn-primary btn-large"
               onClick={() => {
                 loadAvailability();
@@ -694,11 +699,11 @@ function Booking() {
         </div>
       )}
 
-      {/* Шаг 3: Выбор даты */}
+
       {step === 3 && (
         <div className="card">
           <h3>Шаг 3: Выберите дату</h3>
-          
+
           <div className="calendar-legend">
             <div className="legend-item">
               <div className="legend-color" style={{ backgroundColor: '#27ae60' }}></div>
@@ -735,7 +740,7 @@ function Booking() {
                     <div className="stat-item">{day.occupancy_percent}%</div>
                   </div>
                   {!day.is_past && (
-                    <div className="day-status" style={{ 
+                    <div className="day-status" style={{
                       color: formData.selected_date === day.date ? 'white' : getLoadLevelColor(day.load_level)
                     }}>
                       {getLoadLevelText(day.load_level)}
@@ -757,20 +762,20 @@ function Booking() {
         </div>
       )}
 
-      {/* Шаг 4: Выбор времени */}
+
       {step === 4 && (
         <div className="card">
           <h3>Шаг 4: Выберите время</h3>
           <p style={{ color: '#7f8c8d', marginBottom: '1rem' }}>
-            Дата: <strong>{formatDate(formData.selected_date)}</strong> | 
+            Дата: <strong>{formatDate(formData.selected_date)}</strong> |
             Длительность: <strong>{getTotalDuration()} мин</strong>
           </p>
 
           {error && (
-            <div style={{ 
-              padding: '1rem', 
-              background: '#fee', 
-              color: '#c00', 
+            <div style={{
+              padding: '1rem',
+              background: '#fee',
+              color: '#c00',
               borderRadius: '6px',
               marginBottom: '1rem'
             }}>
@@ -782,7 +787,6 @@ function Booking() {
             <div className="loading">Загрузка доступного времени...</div>
           ) : timeSlots.length === 0 ? (
             <div className="empty-state">
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>😔</div>
               <div>На выбранную дату нет свободных окон для услуг такой длительности</div>
               <button className="btn btn-secondary" onClick={() => setStep(3)} style={{ marginTop: '1rem' }}>
                 ← Выбрать другую дату
@@ -823,7 +827,7 @@ function Booking() {
                 <button className="btn btn-secondary" onClick={() => setStep(3)}>
                   ← Назад
                 </button>
-                <button 
+                <button
                   className="btn btn-success btn-large"
                   onClick={handleSubmit}
                   disabled={!formData.selected_time || !formData.selected_box_id}

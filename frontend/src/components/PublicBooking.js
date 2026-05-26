@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+
+const API_URL = 'http://localhost:5000/api';
 
 const fmt = (v) => {
   const d = v.replace(/\D/g, '').slice(0, 11);
@@ -17,15 +19,15 @@ const WDAYS  = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 
 function PublicBooking() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1=услуги 2=данные 3=дата+время 4=успех
+  const [step, setStep] = useState(1);
   const [services, setServices] = useState([]);
-  const [selected, setSelected] = useState([]);   // ids
+  const [selected, setSelected] = useState([]);
   const [phone, setPhone] = useState('');
   const [plate, setPlate] = useState('');
-  const [dates, setDates]   = useState([]);        // 14 дней вперёд
+  const [dates, setDates]   = useState([]);
   const [chosenDate, setChosenDate] = useState(null);
   const [slots, setSlots]   = useState([]);
-  const [chosenSlot, setChosenSlot] = useState(null); // {time, box_id, box_name}
+  const [chosenSlot, setChosenSlot] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState('');
 
@@ -33,7 +35,7 @@ function PublicBooking() {
 
   const loadServices = async () => {
     try {
-      const r = await api.get(`/services`);
+      const r = await axios.get(`${API_URL}/services`);
       const list = Array.isArray(r.data) ? r.data : (r.data.items || []);
       setServices(list.filter(s => s.is_active !== false));
     } catch (e) { console.error(e); }
@@ -50,6 +52,7 @@ function PublicBooking() {
     const svc = services.find(x => x.id === id); return s + (svc?.price || 0);
   }, 0);
 
+
   const buildDates = () => {
     const arr = [];
     for (let i = 1; i <= 14; i++) {
@@ -64,7 +67,7 @@ function PublicBooking() {
     try {
       const dur = totalDur();
       if (dur === 0) { setError('У выбранных услуг не указана длительность'); setLoading(false); return; }
-      const r = await api.post(`/booking/timeslots`, { date: dateStr, total_duration: dur });
+      const r = await axios.post(`${API_URL}/booking/timeslots`, { date: dateStr, total_duration: dur });
       setSlots(r.data.available_slots || []);
       if ((r.data.available_slots || []).length === 0) setError('На эту дату нет свободного времени');
     } catch (e) { setError('Ошибка загрузки слотов'); }
@@ -83,7 +86,7 @@ function PublicBooking() {
     setLoading(true); setError('');
     try {
       const scheduledTime = `${chosenDate}T${chosenSlot.time}:00`;
-      await api.post(`/public/book`, {
+      await axios.post(`${API_URL}/public/book`, {
         phone: phone.replace(/\D/g, ''),
         license_plate: plate.trim().toUpperCase(),
         service_ids: selected,
@@ -97,7 +100,6 @@ function PublicBooking() {
     setLoading(false);
   };
 
-  // ── UI helpers ──
 
   const StepIndicator = () => (
     <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
@@ -108,7 +110,7 @@ function PublicBooking() {
             fontSize: '0.8rem', fontWeight: 700,
             background: step > n ? '#27ae60' : step === n ? '#667eea' : '#ddd',
             color: step >= n ? 'white' : '#999',
-          }}>{step > n ? '✓' : n}</div>
+          }}>{n}</div>
           {n < 3 && <div style={{ width: 40, height: 2, background: step > n ? '#27ae60' : '#ddd' }} />}
         </div>
       ))}
@@ -131,11 +133,9 @@ function PublicBooking() {
     </div>
   );
 
-  // ── Шаги ──
 
   if (step === 4) return (
     <div style={{ maxWidth: 560, margin: '4rem auto', textAlign: 'center', padding: '0 1rem' }}>
-      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
       <h2 style={{ color: '#27ae60', marginBottom: '0.5rem' }}>Запись создана!</h2>
       <p style={{ color: '#7f8c8d', marginBottom: '2rem' }}>
         Ждём вас {new Date(chosenDate).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})} в {chosenSlot?.time} в {chosenSlot?.box_name}.
@@ -158,7 +158,7 @@ function PublicBooking() {
       <StepIndicator />
       {error && <div style={{ padding: '0.75rem 1rem', background: '#fdecea', borderRadius: '6px', color: '#c0392b', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
 
-      {/* ШАГ 1: Услуги */}
+
       {step === 1 && (
         <div>
           <h3 style={{ marginBottom: '1rem', color: '#2c3e50' }}>Выберите услуги</h3>
@@ -176,7 +176,6 @@ function PublicBooking() {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div style={{ width: 20, height: 20, borderRadius: '4px', border: `2px solid ${on ? '#667eea' : '#ccc'}`, background: on ? '#667eea' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {on && <span style={{ color: 'white', fontSize: '12px', fontWeight: 700 }}>✓</span>}
                         </div>
                         <div>
                           <div style={{ fontWeight: 600, color: '#2c3e50' }}>{svc.name}</div>
@@ -198,7 +197,7 @@ function PublicBooking() {
         </div>
       )}
 
-      {/* ШАГ 2: Данные */}
+
       {step === 2 && (
         <div>
           <h3 style={{ marginBottom: '1rem', color: '#2c3e50' }}>Ваши данные</h3>
@@ -219,7 +218,7 @@ function PublicBooking() {
             />
           </div>
           <div style={{ padding: '0.75rem', background: '#f8f9fa', borderRadius: '6px', fontSize: '0.85rem', color: '#7f8c8d' }}>
-            По номеру телефона мы найдём ваши данные в базе. Если вы у нас впервые — всё равно запишем!
+            По номеру телефона мы найдём ваши данные в базе. Если вы у нас впервые - всё равно запишем!
           </div>
           <NavBtns
             onBack={() => { setError(''); setStep(1); }}
@@ -235,7 +234,7 @@ function PublicBooking() {
         </div>
       )}
 
-      {/* ШАГ 3: Дата и время */}
+
       {step === 3 && (
         <div>
           <h3 style={{ marginBottom: '1rem', color: '#2c3e50' }}>Выберите дату</h3>

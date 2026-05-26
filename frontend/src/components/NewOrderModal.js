@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../api';
+import axios from 'axios';
 import './NewOrderModal.css';
 import CarSelector from './CarSelector';
 import './CarSelector.css';
 
+const API_URL = 'http://localhost:5000/api';
+
+
 const formatPhoneNumber = (value) => {
   const cleaned = value.replace(/\D/g, '');
   const limited = cleaned.slice(0, 11);
-  
+
   if (limited.length === 0) return '';
   if (limited.length <= 1) return limited;
   if (limited.length <= 4) return `${limited[0]} (${limited.slice(1)}`;
@@ -26,7 +29,8 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
   const [services, setServices] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
+
   const [clientPhone, setClientPhone] = useState('');
   const [clientFound, setClientFound] = useState(false);
   const [clientData, setClientData] = useState({
@@ -37,6 +41,7 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
     email: ''
   });
 
+
   const [carLicensePlate, setCarLicensePlate] = useState('');
   const [carFound, setCarFound] = useState(false);
   const [carData, setCarData] = useState({
@@ -46,6 +51,7 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
     color: ''
   });
 
+
   const [orderData, setOrderData] = useState({
     service_ids: [],
     box_id: '',
@@ -53,12 +59,13 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
     notes: ''
   });
 
+
   const loadData = async () => {
     setLoading(true);
     try {
       const [boxesRes, servicesRes] = await Promise.all([
-        api.get(`/boxes`),
-        api.get(`/services`)
+        axios.get(`${API_URL}/boxes`),
+        axios.get(`${API_URL}/services`)
       ]);
       setBoxes(boxesRes.data.filter(b => b.is_active));
       setServices(servicesRes.data);
@@ -84,7 +91,7 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
     }
 
     try {
-      const response = await api.post(`/orders/available-slots-today`, {
+      const response = await axios.post(`${API_URL}/orders/available-slots-today`, {
         total_duration: totalDuration
       });
       setAvailableSlots(response.data.boxes);
@@ -96,15 +103,14 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
     }
   }, [orderData.service_ids, services]);
 
-  // Загрузка данных при открытии модального окна
+
   useEffect(() => {
     if (isOpen) {
       loadData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Загрузка доступных слотов при изменении услуг
+
   useEffect(() => {
     if (isOpen && orderData.service_ids.length > 0) {
       loadAvailableSlots();
@@ -119,7 +125,9 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
 
     try {
       const cleanPhone = getCleanPhoneNumber(clientPhone);
-      const response = await api.get(`/clients/search?phone=${cleanPhone}`);
+      const response = await axios.get(`${API_URL}/clients/search`, {
+        params: { phone: cleanPhone }
+      });
       setClientData({
         id: response.data.id,
         first_name: response.data.first_name,
@@ -153,7 +161,9 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
     }
 
     try {
-      const response = await api.get(`/cars/search?license_plate=${carLicensePlate}`);
+      const response = await axios.get(`${API_URL}/cars/search`, {
+        params: { license_plate: carLicensePlate.trim().toUpperCase() }
+      });
       setCarData({
         id: response.data.id,
         brand: response.data.brand || '',
@@ -182,11 +192,16 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
     e.preventDefault();
     setError('');
 
+    if (!orderData.box_id || !orderData.scheduled_time) {
+      setError('Выберите бокс и время');
+      return;
+    }
+
     try {
-      // 1. Создать или получить клиента
+
       let clientId = clientData.id;
       if (!clientId) {
-        const clientResponse = await api.post(`/clients`, {
+        const clientResponse = await axios.post(`${API_URL}/clients`, {
           first_name: clientData.first_name,
           last_name: clientData.last_name,
           middle_name: clientData.middle_name,
@@ -196,10 +211,10 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
         clientId = clientResponse.data.id;
       }
 
-      // 2. Создать или получить автомобиль
+
       let carId = carData.id;
       if (!carId) {
-        const carResponse = await api.post(`/cars`, {
+        const carResponse = await axios.post(`${API_URL}/cars`, {
           license_plate: carLicensePlate,
           brand: carData.brand,
           model: carData.model,
@@ -208,8 +223,8 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
         carId = carResponse.data.id;
       }
 
-      // 3. Создать заказ
-      await api.post(`/orders`, {
+
+      await axios.post(`${API_URL}/orders`, {
         client_id: clientId,
         car_id: carId,
         service_ids: orderData.service_ids,
@@ -219,7 +234,7 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
         status: 'pending'
       });
 
-      // Успех!
+
       onSuccess();
       handleClose();
     } catch (err) {
@@ -229,7 +244,7 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
   };
 
   const handleClose = () => {
-    // Сброс всех данных
+
     setClientPhone('');
     setClientFound(false);
     setClientData({ id: null, first_name: '', last_name: '', middle_name: '', email: '' });
@@ -256,10 +271,10 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
           <div className="modal-body">
             {error && <div className="error-message">{error}</div>}
 
-            {/* Секция: Клиент */}
+
             <div className="form-section">
               <h3>Клиент</h3>
-              
+
               <div className="search-group">
                 <input
                   type="tel"
@@ -328,10 +343,10 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
               </div>
             </div>
 
-            {/* Секция: Автомобиль */}
+
             <div className="form-section">
               <h3>Автомобиль</h3>
-              
+
               <div className="search-group">
                 <input
                   type="text"
@@ -357,7 +372,7 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
                 </div>
               )}
 
-              {/* Выбор марки и модели - ВСЕГДА показываем для нового автомобиля */}
+
               {!carFound && (
                 <>
                   <div style={{ marginBottom: '1rem' }}>
@@ -405,11 +420,11 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
                 </>
               )}
 
-              {/* Отображение данных найденного автомобиля */}
+
               {carFound && (
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(3, 1fr)', 
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
                   gap: '1rem',
                   marginBottom: '1rem',
                   padding: '1rem',
@@ -439,29 +454,29 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
               )}
             </div>
 
-            {/* Секция: Детали заказа */}
+
             <div className="form-section">
               <h3>Детали заказа</h3>
-              
+
               {loading && <div style={{ textAlign: 'center', padding: '1rem', color: '#7f8c8d' }}>Загрузка...</div>}
-              
+
               {!loading && services.length === 0 && (
                 <div style={{ padding: '1rem', background: '#fff3cd', borderRadius: '4px', marginBottom: '1rem' }}>
                   Услуги не найдены. Создайте услуги в разделе "Услуги" перед созданием заказа.
                 </div>
               )}
-              
+
               {!loading && boxes.length === 0 && (
                 <div style={{ padding: '1rem', background: '#fff3cd', borderRadius: '4px', marginBottom: '1rem' }}>
                   Боксы не найдены. Создайте боксы в разделе "Настройки" перед созданием заказа.
                 </div>
               )}
-              
+
               <div className="form-row">
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Услуги * (можно выбрать несколько)</label>
                   {services.length > 0 ? (
-                    <div style={{ 
+                    <div style={{
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '0.75rem',
@@ -473,9 +488,9 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
                       overflowY: 'auto'
                     }}>
                       {services.map(service => (
-                      <label 
-                        key={service.id} 
-                        style={{ 
+                      <label
+                        key={service.id}
+                        style={{
                           display: 'flex',
                           alignItems: 'flex-start',
                           gap: '0.75rem',
@@ -497,7 +512,7 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
                               : orderData.service_ids.filter(id => id !== service.id);
                             setOrderData({ ...orderData, service_ids: newServiceIds });
                           }}
-                          style={{ 
+                          style={{
                             marginTop: '0.25rem',
                             width: '18px',
                             height: '18px',
@@ -505,20 +520,20 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
                           }}
                         />
                         <div style={{ flex: 1 }}>
-                          <div style={{ 
+                          <div style={{
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             marginBottom: '0.5rem'
                           }}>
-                            <div style={{ 
-                              fontSize: '1rem', 
+                            <div style={{
+                              fontSize: '1rem',
                               fontWeight: '600',
                               color: '#2c3e50'
                             }}>
                               {service.name}
                             </div>
-                            <div style={{ 
+                            <div style={{
                               display: 'flex',
                               gap: '1.5rem',
                               fontSize: '0.9rem',
@@ -534,7 +549,7 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
                             </div>
                           </div>
                           {service.description && (
-                            <div style={{ 
+                            <div style={{
                               fontSize: '0.9rem',
                               color: '#7f8c8d',
                               lineHeight: '1.4'
@@ -558,12 +573,12 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
                   )}
                   {services.length > 0 && orderData.service_ids.length > 0 && (
                     <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#e8f5e9', borderRadius: '4px', fontSize: '0.95rem' }}>
-                      <strong>Выбрано услуг:</strong> {orderData.service_ids.length} | 
+                      <strong>Выбрано услуг:</strong> {orderData.service_ids.length} |
                       <strong> Общая стоимость:</strong> {
                         services
                           .filter(s => orderData.service_ids.includes(s.id))
                           .reduce((sum, s) => sum + s.price, 0)
-                      } ₽ | 
+                      } ₽ |
                       <strong> Общее время:</strong> {
                         services
                           .filter(s => orderData.service_ids.includes(s.id))
@@ -614,17 +629,25 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
                               </div>
                             )}
                           </div>
-                          
+
                           {slot.is_available && (
                             <div style={{ flex: 1 }}>
                               <select
                                 value={orderData.box_id === slot.box_id ? orderData.scheduled_time.split('T')[1]?.slice(0, 5) || '' : ''}
                                 onChange={(e) => {
-                                  // Используем локальную дату, не UTC, чтобы избежать сдвига часовых поясов
+                                  if (!e.target.value) {
+                                    setOrderData({
+                                      ...orderData,
+                                      box_id: '',
+                                      scheduled_time: ''
+                                    });
+                                    return;
+                                  }
+
                                   const now = new Date();
                                   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                                  setOrderData({ 
-                                    ...orderData, 
+                                  setOrderData({
+                                    ...orderData,
                                     box_id: slot.box_id,
                                     scheduled_time: `${today}T${e.target.value}:00`
                                   });
@@ -671,10 +694,10 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
             <button type="button" className="btn btn-cancel" onClick={handleClose}>
               Отмена
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn btn-success"
-              disabled={loading || orderData.service_ids.length === 0 || services.length === 0}
+              disabled={loading || orderData.service_ids.length === 0 || services.length === 0 || !orderData.box_id || !orderData.scheduled_time}
             >
               {loading ? 'Загрузка...' : 'Создать заказ'}
             </button>

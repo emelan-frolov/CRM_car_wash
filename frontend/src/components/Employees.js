@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import api from "../api";
+import axios from "axios";
 import EmployeeCalendar from "./EmployeeCalendar";
 import Pagination from "./Pagination";
 import { hasPermission } from "../auth";
+
+const API_URL = "http://localhost:5000/api";
+
 
 const formatPhoneNumber = (value) => {
   const cleaned = value.replace(/\D/g, "");
@@ -57,21 +60,20 @@ function Employees() {
       searchName ? 300 : 0,
     );
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchName]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [employeesRes, positionsRes] = await Promise.all([
-        api.get(`/employees`, {
+        axios.get(`${API_URL}/employees`, {
           params: {
             page: currentPage,
             page_size: PAGE_SIZE,
             search: searchName,
           },
         }),
-        api.get(`/positions`),
+        axios.get(`${API_URL}/positions`),
       ]);
       setEmployees(employeesRes.data.items || []);
       setTotalEmployees(employeesRes.data.total || 0);
@@ -92,12 +94,13 @@ function Employees() {
       };
 
       if (editingEmployee) {
-        await api.put(`/employees/${editingEmployee.id}`,
+        await axios.put(
+          `${API_URL}/employees/${editingEmployee.id}`,
           dataToSend,
         );
         setEditingEmployee(null);
       } else {
-        await api.post(`/employees`, dataToSend);
+        await axios.post(`${API_URL}/employees`, dataToSend);
       }
       setFormData({
         first_name: "",
@@ -149,7 +152,8 @@ function Employees() {
     }
 
     try {
-      const response = await api.post(`/employees/${selectedEmployee.id}/fire`,
+      const response = await axios.post(
+        `${API_URL}/employees/${selectedEmployee.id}/fire`,
         {
           fire_date: fireDate,
         },
@@ -169,12 +173,13 @@ function Employees() {
     const employee = selectedEmployee;
     const isFired = employee?.status === "fired";
     const confirmText = isFired
-      ? "Вернуть сотрудника в штат? Учётная запись администратора будет восстановлена (если была)."
+      ? "Вернуть сотрудника в штат?"
       : "Вернуть сотрудника к работе?";
 
     if (window.confirm(confirmText)) {
       try {
-        const response = await api.post(`/employees/${id}/activate`,
+        const response = await axios.post(
+          `${API_URL}/employees/${id}/activate`,
         );
         alert(response.data.message);
         setSelectedEmployee(null);
@@ -229,7 +234,7 @@ function Employees() {
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
           <input
             type="text"
-            placeholder="🔍 Поиск по ФИО..."
+            placeholder="Поиск по ФИО..."
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
             style={{
@@ -365,7 +370,7 @@ function Employees() {
               </select>
               {positions.length === 0 && (
                 <small style={{ color: "#e74c3c", fontSize: "0.85rem" }}>
-                  ⚠️ Сначала создайте должности во вкладке "Должности"
+                   Сначала создайте должности во вкладке "Должности"
                 </small>
               )}
             </div>
@@ -387,8 +392,8 @@ function Employees() {
               </select>
               <small style={{ color: "#7f8c8d", fontSize: "0.85rem" }}>
                 {formData.salary_type === "fixed"
-                  ? "💼 Сотрудник получает фиксированную часовую ставку согласно должности"
-                  : "📊 Зарплата зависит от количества выполненных заказов"}
+                  ? " Сотрудник получает фиксированную часовую ставку согласно должности"
+                  : " Зарплата зависит от количества выполненных заказов"}
               </small>
             </div>
             <button
@@ -408,7 +413,7 @@ function Employees() {
             <p>Сотрудников пока нет. Добавьте первого!</p>
             {positions.length === 0 && (
               <p style={{ color: "#e74c3c", marginTop: "1rem" }}>
-                ⚠️ Сначала создайте должности во вкладке "Должности"
+                 Сначала создайте должности во вкладке "Должности"
               </p>
             )}
           </div>
@@ -529,7 +534,7 @@ function Employees() {
         )}
       </div>
 
-      {/* Модальное окно увольнения */}
+
       {showFireModal && (
         <div className="modal-overlay" onClick={() => setShowFireModal(false)}>
           <div
@@ -568,7 +573,7 @@ function Employees() {
                   border: "1px solid #f5c6cb",
                 }}
               >
-                ⚠️ <strong>Внимание!</strong> Все будущие назначения сотрудника
+                 <strong>Внимание!</strong> Все будущие назначения сотрудника
                 будут удалены. Это действие нельзя отменить.
               </div>
             </div>

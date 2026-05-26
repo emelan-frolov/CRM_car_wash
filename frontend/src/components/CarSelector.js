@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import carsData from '../cars.json'; // Импортируем локальные данные
+import carsData from '../cars.json';
 
-const SearchableSelect = ({ 
-  options, 
-  value, 
-  onChange, 
-  placeholder, 
-  disabled, 
+
+const SearchableSelect = ({
+  options,
+  value,
+  onChange,
+  placeholder,
+  disabled,
   loading,
   searchValue,
-  onSearchChange 
+  onSearchChange
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [filteredOptions, setFilteredOptions] = useState(options);
@@ -18,7 +19,7 @@ const SearchableSelect = ({
 
   useEffect(() => {
     if (searchValue) {
-      const filtered = options.filter(option => 
+      const filtered = options.filter(option =>
         option.label.toLowerCase().includes(searchValue.toLowerCase()) ||
         (option.cyrillic_name && option.cyrillic_name.toLowerCase().includes(searchValue.toLowerCase()))
       );
@@ -40,7 +41,7 @@ const SearchableSelect = ({
   }, []);
 
   useEffect(() => {
-    // Автофокус на поле поиска при открытии
+
     if (isOpen && searchInputRef.current) {
       setTimeout(() => {
         searchInputRef.current?.focus();
@@ -102,8 +103,8 @@ const SearchableSelect = ({
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}
         >
-          <div style={{ 
-            padding: '0.75rem', 
+          <div style={{
+            padding: '0.75rem',
             borderBottom: '1px solid #eee',
             position: 'sticky',
             top: 0,
@@ -113,7 +114,7 @@ const SearchableSelect = ({
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="🔍 Начните вводить название..."
+              placeholder="Начните вводить название..."
               value={searchValue || ''}
               onChange={(e) => onSearchChange(e.target.value)}
               style={{
@@ -129,24 +130,23 @@ const SearchableSelect = ({
               onClick={(e) => e.stopPropagation()}
             />
             {searchValue && (
-              <div style={{ 
-                fontSize: '0.75rem', 
-                color: '#666', 
-                marginTop: '0.25rem' 
+              <div style={{
+                fontSize: '0.75rem',
+                color: '#666',
+                marginTop: '0.25rem'
               }}>
                 Найдено: {filteredOptions.length}
               </div>
             )}
           </div>
-          
+
           <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
             {filteredOptions.length === 0 ? (
-              <div style={{ 
-                padding: '2rem 1rem', 
-                textAlign: 'center', 
-                color: '#95a5a6' 
+              <div style={{
+                padding: '2rem 1rem',
+                textAlign: 'center',
+                color: '#95a5a6'
               }}>
-                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
                 <div>Ничего не найдено</div>
                 <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
                   Попробуйте изменить запрос
@@ -184,24 +184,24 @@ const SearchableSelect = ({
   );
 };
 
-const CarSelector = ({ 
-  selectedBrand, 
-  selectedModel, 
-  onBrandChange, 
-  onModelChange, 
-  disabled = false 
+const CarSelector = ({
+  selectedBrand,
+  selectedModel,
+  onBrandChange,
+  onModelChange,
+  disabled = false
 }) => {
   const [brands, setBrands] = useState([]);
   const [models, setModels] = useState([]);
   const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
 
-  // Загрузка марок при монтировании компонента
+
   useEffect(() => {
     loadBrands();
   }, []);
 
-  // Загрузка моделей при выборе марки
+
   useEffect(() => {
     if (selectedBrand) {
       loadModels(selectedBrand);
@@ -211,13 +211,12 @@ const CarSelector = ({
         onModelChange('');
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBrand]);
 
   const loadBrands = () => {
-    console.log('📦 Загружаем марки из локального файла cars.json...');
-    
-    // Используем все марки из локального файла без фильтрации по годам
+    console.log('Загружаем марки из локального файла cars.json...');
+
+
     const brandOptions = carsData.map(brand => ({
       value: brand.id,
       label: brand.name,
@@ -225,26 +224,26 @@ const CarSelector = ({
       cyrillic_name: brand.cyrillic_name
     }));
 
-    // Сортируем по алфавиту
+
     brandOptions.sort((a, b) => a.label.localeCompare(b.label));
 
-    console.log('✅ Загружено марок из локального файла:', brandOptions.length);
+    console.log('Загружено марок из локального файла:', brandOptions.length);
     setBrands(brandOptions);
   };
 
   const loadModels = (brandName) => {
-    console.log('📦 Загружаем модели для марки из локального файла:', brandName);
-    
-    // Находим марку по имени
+    console.log('Загружаем модели для марки из локального файла:', brandName);
+
+
     const brand = carsData.find(b => b.name === brandName);
-    
+
     if (!brand || !brand.models) {
-      console.log('⚠️ Марка не найдена или нет моделей');
+      console.log('Марка не найдена или нет моделей');
       setModels([]);
       return;
     }
 
-    // Используем все модели из локального файла без фильтрации по годам
+
     const modelOptions = brand.models.map(model => ({
       value: model.id,
       label: model.name,
@@ -252,18 +251,18 @@ const CarSelector = ({
       cyrillic_name: model.cyrillic_name
     }));
 
-    // Сортируем по алфавиту
+
     modelOptions.sort((a, b) => a.label.localeCompare(b.label));
 
-    console.log('✅ Загружено моделей из локального файла:', modelOptions.length);
+    console.log('Загружено моделей из локального файла:', modelOptions.length);
     setModels(modelOptions);
   };
 
   const handleBrandChange = (brandOption) => {
-    console.log('🚗 Выбрана марка:', brandOption);
+    console.log('Выбрана марка:', brandOption);
     if (brandOption && brandOption.name) {
       onBrandChange(brandOption.name);
-      // Сбрасываем модель при смене марки
+
       if (selectedModel) {
         onModelChange('');
       }
@@ -271,7 +270,7 @@ const CarSelector = ({
   };
 
   const handleModelChange = (modelOption) => {
-    console.log('🚙 Выбрана модель:', modelOption);
+    console.log('Выбрана модель:', modelOption);
     if (modelOption && modelOption.name) {
       onModelChange(modelOption.name);
     }

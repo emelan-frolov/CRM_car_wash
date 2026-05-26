@@ -149,7 +149,7 @@
   font-weight: 600;
 }
 
-/* Bar chart */
+
 .bar-chart {
   display: flex;
   flex-direction: column;
@@ -204,7 +204,7 @@
   text-align: right;
 }
 
-/* Hour chart */
+
 .hour-chart {
   display: flex;
   align-items: flex-end;
@@ -264,7 +264,7 @@
   color: #2c3e50;
 }
 
-/* Таблица в статистике */
+
 .stats-table {
   width: 100%;
   border-collapse: collapse;

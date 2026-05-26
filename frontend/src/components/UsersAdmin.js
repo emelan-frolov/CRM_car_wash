@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import api from "../api";
+import axios from "axios";
 import ChangePasswordModal from "./ChangePasswordModal";
+
+const API_URL = "http://localhost:5000/api";
 
 function UsersAdmin() {
   const [users, setUsers] = useState([]);
@@ -124,8 +126,8 @@ function UsersAdmin() {
     try {
       setLoading(true);
       const [usersRes, employeesRes] = await Promise.all([
-        api.get(`/auth/users`),
-        api.get(`/auth/eligible-employees`),
+        axios.get(`${API_URL}/auth/users`),
+        axios.get(`${API_URL}/auth/eligible-employees`),
       ]);
       setUsers(usersRes.data);
       setEligibleEmployees(employeesRes.data);
@@ -170,7 +172,7 @@ function UsersAdmin() {
       allPermFields.forEach((f) => {
         perms[f] = formData[f];
       });
-      await api.post(`/auth/users`, {
+      await axios.post(`${API_URL}/auth/users`, {
         login: formData.login,
         password: formData.password,
         employee_id: parseInt(formData.employee_id),
@@ -232,7 +234,8 @@ function UsersAdmin() {
 
   const handleSavePermissions = async () => {
     try {
-      await api.put(`/auth/users/${permissionsTarget.id}/permissions`,
+      await axios.put(
+        `${API_URL}/auth/users/${permissionsTarget.id}/permissions`,
         permissionsForm,
       );
       setPermissionsTarget(null);
@@ -245,12 +248,12 @@ function UsersAdmin() {
   const handleDelete = async (user) => {
     if (
       !window.confirm(
-        `Удалить пользователя "${user.full_name}" (${user.login})?`,
+        `Удалить пользователя "${user.full_name}" (${user.login})-`,
       )
     )
       return;
     try {
-      await api.delete(`/auth/users/${user.id}`);
+      await axios.delete(`${API_URL}/auth/users/${user.id}`);
       loadAll();
     } catch (err) {
       alert("Ошибка: " + (err.response?.data?.error || err.message));
@@ -263,7 +266,8 @@ function UsersAdmin() {
       return;
     }
     try {
-      await api.post(`/auth/users/${resetTarget.id}/reset-password`,
+      await axios.post(
+        `${API_URL}/auth/users/${resetTarget.id}/reset-password`,
         {
           password: resetPassword,
         },
@@ -548,7 +552,7 @@ function UsersAdmin() {
                 color: "#856404",
               }}
             >
-              ⚠️ Нет доступных сотрудников для назначения админом.
+               Нет доступных сотрудников для назначения админом.
               <br />
               <br />
               Чтобы сотрудник появился в этом списке:
@@ -581,7 +585,7 @@ function UsersAdmin() {
                   <option value="">Выберите сотрудника</option>
                   {eligibleEmployees.map((emp) => (
                     <option key={emp.id} value={emp.id}>
-                      {emp.full_name} — {emp.position_name}
+                      {emp.full_name} - {emp.position_name}
                     </option>
                   ))}
                 </select>
@@ -671,7 +675,7 @@ function UsersAdmin() {
                         {user.employee_position}
                       </span>
                     ) : (
-                      <span style={{ color: "#95a5a6" }}>—</span>
+                      <span style={{ color: "#95a5a6" }}>-</span>
                     )}
                   </td>
                   <td>
@@ -765,7 +769,7 @@ function UsersAdmin() {
                             ))}
                           </div>
                         ) : (
-                          <span style={{ color: "#95a5a6" }}>—</span>
+                          <span style={{ color: "#95a5a6" }}>-</span>
                         );
                       })()
                     )}
@@ -777,7 +781,7 @@ function UsersAdmin() {
                     {user.last_login ? (
                       new Date(user.last_login).toLocaleString("ru-RU")
                     ) : (
-                      <span style={{ color: "#95a5a6" }}>—</span>
+                      <span style={{ color: "#95a5a6" }}>-</span>
                     )}
                   </td>
                   <td>
@@ -848,7 +852,7 @@ function UsersAdmin() {
         )}
       </div>
 
-      {/* Модал смены пароля */}
+
       {resetTarget && (
         <div className="modal-overlay" onClick={() => setResetTarget(null)}>
           <div
@@ -908,7 +912,7 @@ function UsersAdmin() {
         </div>
       )}
 
-      {/* Модал редактирования прав */}
+
       {permissionsTarget && (
         <div
           className="modal-overlay"
@@ -953,7 +957,7 @@ function UsersAdmin() {
         </div>
       )}
 
-      {/* Модал смены своего пароля (для владельца) */}
+
       <ChangePasswordModal
         isOpen={showOwnPasswordModal}
         onClose={() => setShowOwnPasswordModal(false)}

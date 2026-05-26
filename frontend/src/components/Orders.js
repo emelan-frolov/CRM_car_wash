@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import api from "../api";
+import axios from "axios";
 import Pagination from "./Pagination";
 import "./Orders.css";
 import { hasPermission } from "../auth";
+
+const API_URL = "http://localhost:5000/api";
+
 
 const formatPhoneNumber = (value) => {
   if (!value) return "-";
@@ -49,9 +52,11 @@ function Orders() {
     notes: "",
   });
 
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchName, searchPhone]);
+
 
   useEffect(() => {
     const timer = setTimeout(
@@ -61,10 +66,9 @@ function Orders() {
       searchName || searchPhone ? 300 : 0,
     );
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchName, searchPhone]);
 
-  // Один раз загружаем справочники для формы
+
   useEffect(() => {
     loadAuxData();
   }, []);
@@ -72,7 +76,7 @@ function Orders() {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/orders`, {
+      const response = await axios.get(`${API_URL}/orders`, {
         params: {
           page: currentPage,
           page_size: PAGE_SIZE,
@@ -92,9 +96,9 @@ function Orders() {
   const loadAuxData = async () => {
     try {
       const [clientsRes, servicesRes, boxesRes] = await Promise.all([
-        api.get(`/clients`),
-        api.get(`/services`),
-        api.get(`/boxes`),
+        axios.get(`${API_URL}/clients`),
+        axios.get(`${API_URL}/services`),
+        axios.get(`${API_URL}/boxes`),
       ]);
       setClients(clientsRes.data);
       setServices(servicesRes.data);
@@ -112,7 +116,7 @@ function Orders() {
       const selectedService = services.find(
         (s) => s.id === parseInt(formData.service_id),
       );
-      await api.post(`/orders`, {
+      await axios.post(`${API_URL}/orders`, {
         ...formData,
         client_id: parseInt(formData.client_id),
         service_id: parseInt(formData.service_id),
@@ -135,7 +139,7 @@ function Orders() {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      await api.put(`/orders/${orderId}`, {
+      await axios.put(`${API_URL}/orders/${orderId}`, {
         status: newStatus,
         completed_time:
           newStatus === "completed" ? new Date().toISOString() : null,
@@ -153,7 +157,7 @@ function Orders() {
       )
     ) {
       try {
-        await api.delete(`/orders/${id}`);
+        await axios.delete(`${API_URL}/orders/${id}`);
         setSelectedOrder(null);
         loadData();
       } catch (error) {
@@ -164,21 +168,20 @@ function Orders() {
   };
 
   const handleRowClick = (order) => {
-    if (showForm) return; // Не выбираем строку если открыта форма
+    if (showForm) return;
     setSelectedOrder(selectedOrder?.id === order.id ? null : order);
   };
 
-  // Восстановление активного экспорта при загрузке страницы
+
   useEffect(() => {
     const savedJobId = localStorage.getItem("export_job_id");
     if (savedJobId) {
-      // Проверяем, что задача ещё актуальна
+
       checkExportStatus(savedJobId, true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Опрос статуса экспорта (каждые 500мс)
+
   useEffect(() => {
     if (!exportJobId || !exporting) return;
 
@@ -187,12 +190,11 @@ function Orders() {
     }, 500);
 
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exportJobId, exporting]);
 
   const checkExportStatus = async (jobId, isRestore) => {
     try {
-      const res = await api.get(`/orders/export/status/${jobId}`);
+      const res = await axios.get(`${API_URL}/orders/export/status/${jobId}`);
       const job = res.data;
 
       if (job.status === "completed") {
@@ -205,7 +207,7 @@ function Orders() {
       } else if (job.status === "cancelled") {
         clearExportState();
       } else {
-        // pending или processing
+
         if (isRestore) {
           setExporting(true);
           setExportJobId(jobId);
@@ -214,7 +216,7 @@ function Orders() {
       }
     } catch (error) {
       if (error.response?.status === 404) {
-        // Задача исчезла на сервере (возможно backend перезапущен)
+
         if (isRestore) {
           localStorage.removeItem("export_job_id");
         } else {
@@ -227,7 +229,8 @@ function Orders() {
 
   const downloadExportedFile = async (jobId, filename) => {
     try {
-      const response = await api.get(`/orders/export/download/${jobId}`,
+      const response = await axios.get(
+        `${API_URL}/orders/export/download/${jobId}`,
         {
           responseType: "blob",
         },
@@ -237,13 +240,13 @@ function Orders() {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
 
-      // Если у нас сохранён fileHandle - пишем туда (только если страница не перезагружалась)
+
       if (exportFileHandle) {
         const writable = await exportFileHandle.createWritable();
         await writable.write(blob);
         await writable.close();
       } else {
-        // Фоллбэк - скачивание через ссылку
+
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
@@ -315,10 +318,10 @@ function Orders() {
       if (exportPeriod.start_date) body.start_date = exportPeriod.start_date;
       if (exportPeriod.end_date) body.end_date = exportPeriod.end_date;
 
-      const res = await api.post(`/orders/export/start`, body);
+      const res = await axios.post(`${API_URL}/orders/export/start`, body);
       const jobId = res.data.job_id;
 
-      // Сохраняем в localStorage для восстановления после обновления страницы
+
       localStorage.setItem("export_job_id", jobId);
       setExportJobId(jobId);
     } catch (error) {
@@ -328,15 +331,17 @@ function Orders() {
     }
   };
 
+
   const handleCancelExport = async () => {
     if (!exportJobId) return;
     try {
-      await api.post(`/orders/export/cancel/${exportJobId}`);
+      await axios.post(`${API_URL}/orders/export/cancel/${exportJobId}`);
     } catch (e) {
       console.warn("Ошибка отмены:", e);
     }
     clearExportState();
   };
+
 
   const setPeriodPreset = (preset) => {
     const today = new Date();
@@ -425,7 +430,7 @@ function Orders() {
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
           <input
             type="text"
-            placeholder="🔍 Поиск по ФИО клиента..."
+            placeholder="Поиск по ФИО клиента..."
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
             style={{
@@ -441,7 +446,7 @@ function Orders() {
           />
           <input
             type="text"
-            placeholder="📞 Поиск по телефону..."
+            placeholder="Поиск по телефону..."
             value={searchPhone}
             onChange={(e) => setSearchPhone(e.target.value)}
             style={{
@@ -460,7 +465,7 @@ function Orders() {
               className="btn btn-danger"
               onClick={() => handleDelete(selectedOrder.id)}
             >
-              🗑️ Удалить
+               Удалить
             </button>
           )}
           {hasPermission("can_export_orders") && (
@@ -476,7 +481,7 @@ function Orders() {
             >
               <span className="export-btn-content">
                 {exporting
-                  ? `❌ Отменить (${Math.round(exportProgress)}%)`
+                  ? ` Отменить (${Math.round(exportProgress)}%)`
                   : "Экспорт в Excel"}
               </span>
             </button>
@@ -484,16 +489,17 @@ function Orders() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card orders-card">
         {totalOrders === 0 && !searchName && !searchPhone ? (
           <p>Заказов пока нет. Создайте первый!</p>
         ) : (
           <>
-            <table>
+            <div className="orders-table-wrapper">
+            <table className="orders-table">
               <thead>
                 <tr>
                   <th>Клиент</th>
-                  <th>Телефон</th>
+                  <th className="orders-phone-cell">Телефон</th>
                   <th>Гос. номер</th>
                   <th>Авто</th>
                   <th>Услуги</th>
@@ -520,7 +526,9 @@ function Orders() {
                       }}
                     >
                       <td>{order.client_name}</td>
-                      <td>{formatPhoneNumber(order.client_phone)}</td>
+                      <td className="orders-phone-cell">
+                        {formatPhoneNumber(order.client_phone)}
+                      </td>
                       <td>{order.car_license_plate || "-"}</td>
                       <td>{order.car_info || "-"}</td>
                       <td>{order.service_names}</td>
@@ -540,6 +548,7 @@ function Orders() {
                 })}
               </tbody>
             </table>
+            </div>
             <Pagination
               currentPage={currentPage}
               totalItems={totalOrders}
@@ -550,7 +559,7 @@ function Orders() {
         )}
       </div>
 
-      {/* Модальное окно выбора периода для экспорта */}
+
       {showExportModal && (
         <div
           className="modal-overlay"

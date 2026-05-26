@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import api from '../api';
+import axios from 'axios';
 import './Schedule.css';
 import NewOrderModal from './NewOrderModal';
+
+const API_URL = 'http://localhost:5000/api';
+
 
 const formatLicensePlateShort = (plate) => {
   if (!plate) return '';
   return plate.slice(0, 6);
 };
 
+
 const formatPhoneNumber = (value) => {
   if (!value) return '';
   const cleaned = value.replace(/\D/g, '');
   const limited = cleaned.slice(0, 11);
-  
+
   if (limited.length === 0) return '';
   if (limited.length <= 1) return limited;
   if (limited.length <= 4) return `${limited[0]} (${limited.slice(1)}`;
@@ -33,13 +37,13 @@ function Schedule() {
 
   useEffect(() => {
     loadData();
-    
-    // Обновление данных каждые 30 секунд
+
+
     const dataInterval = setInterval(() => {
       loadData();
     }, 30000);
-    
-    // Обновление текущего времени каждую секунду
+
+
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -53,21 +57,21 @@ function Schedule() {
   const loadData = async () => {
     try {
       setError(null);
-      
-      // Получаем сегодняшнюю дату в формате YYYY-MM-DD
+
+
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      
+
       const [boxesRes, ordersRes, schedulesRes] = await Promise.all([
-        api.get(`/boxes`),
-        api.get(`/orders/schedule`),
-        api.get(`/box-schedules`, {
+        axios.get(`${API_URL}/boxes`),
+        axios.get(`${API_URL}/orders/schedule`),
+        axios.get(`${API_URL}/box-schedules`, {
           params: { start_date: todayStr, end_date: todayStr }
         })
       ]);
-      
+
       const activeBoxes = boxesRes.data.filter(b => b.is_active);
-      
+
       setBoxes(activeBoxes);
       setOrders(ordersRes.data);
       setBoxSchedules(schedulesRes.data);
@@ -79,64 +83,62 @@ function Schedule() {
     }
   };
 
-  // Генерация временной шкалы: 2 часа назад + 4 часа вперед, но в пределах 10:00–22:00
-  // useMemo зависит от часа, чтобы шкала сдвигалась со временем
+
   const currentHourKey = `${currentTime.getFullYear()}-${currentTime.getMonth()}-${currentTime.getDate()}-${currentTime.getHours()}`;
   const timeSlots = useMemo(() => {
     const slots = [];
     const now = new Date();
-    
-    // Границы рабочего дня
+
+
     const workStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0, 0);
     const workEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 22, 0, 0, 0);
-    
-    // Желаемое окно: 2 часа назад + 4 часа вперед
+
+
     let startTime = new Date(now.getTime() - 2 * 60 * 60 * 1000);
     startTime.setMinutes(0, 0, 0);
-    let endTime = new Date(startTime.getTime() + 6 * 60 * 60 * 1000); // 6 часов всего
-    
-    // Обрезаем по границам рабочего дня
+    let endTime = new Date(startTime.getTime() + 6 * 60 * 60 * 1000);
+
+
     if (startTime < workStart) startTime = new Date(workStart);
     if (endTime > workEnd) endTime = new Date(workEnd);
-    
-    // Если окно сместилось из-за обрезания справа - подвинем начало назад
-    // (например, сейчас 21:00, окно должно было быть 19:00-01:00, обрезали до 22:00,
-    //  но окно всё равно должно показывать 6 часов, поэтому начало = 16:00)
+
+
     const desiredDurationMs = 6 * 60 * 60 * 1000;
     if (endTime - startTime < desiredDurationMs) {
       const newStart = new Date(endTime.getTime() - desiredDurationMs);
       if (newStart >= workStart) startTime = newStart;
     }
-    // Аналогично, если обрезали слева - подвинем конец вперёд
+
     if (endTime - startTime < desiredDurationMs) {
       const newEnd = new Date(startTime.getTime() + desiredDurationMs);
       if (newEnd <= workEnd) endTime = newEnd;
     }
-    
-    // Генерируем слоты по 15 минут
+
+
     const totalMinutes = (endTime - startTime) / (60 * 1000);
     const slotsCount = Math.floor(totalMinutes / 15);
-    
+
     for (let i = 0; i < slotsCount; i++) {
       const time = new Date(startTime.getTime() + i * 15 * 60 * 1000);
       slots.push(time);
     }
-    
+
     return slots;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentHourKey]);
+
 
   const formatTimeSlot = (date) => {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    
-    // Если это начало часа (00 минут), показываем только часы
+
+
     if (minutes === '00') {
       return hours;
     }
-    // Иначе показываем только минуты
+
     return minutes;
   };
+
 
   const formatCurrentTime = (date) => {
     const hours = date.getHours().toString().padStart(2, '0');
@@ -145,16 +147,18 @@ function Schedule() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
+
   const getEmployeeForBox = (boxId) => {
     const schedule = boxSchedules.find(s => s.box_id === boxId);
     return schedule ? schedule.employee_name : null;
   };
 
+
   const isHourStart = (date) => {
     return date.getMinutes() === 0;
   };
 
-  // Получить позицию и ширину заказа на временной шкале
+
   const getOrderPosition = (order) => {
     if (!order.scheduled_time || !order.service_duration) {
       return null;
@@ -165,34 +169,35 @@ function Schedule() {
     const scheduleStart = timeSlots[0];
     const scheduleEnd = new Date(timeSlots[timeSlots.length - 1].getTime() + 15 * 60 * 1000);
 
-    // Если заказ полностью вне видимого диапазона - не показываем
+
     if (orderEnd <= scheduleStart || orderStart >= scheduleEnd) {
       return null;
     }
 
-    // Обрезаем заказ по границам видимого окна
+
     const visibleStart = orderStart < scheduleStart ? scheduleStart : orderStart;
     const visibleEnd = orderEnd > scheduleEnd ? scheduleEnd : orderEnd;
 
-    // Вычисляем в каких ЯЧЕЙКАХ находится заказ
-    const totalSlots = timeSlots.length; // 24 ячейки
+
+    const totalSlots = timeSlots.length;
     const startMinutesFromScheduleStart = (visibleStart - scheduleStart) / (60 * 1000);
     const endMinutesFromScheduleStart = (visibleEnd - scheduleStart) / (60 * 1000);
-    
-    // Номер начальной и конечной ячейки (каждая ячейка = 15 минут)
+
+
     const startSlotIndex = Math.floor(startMinutesFromScheduleStart / 15);
     const endSlotIndex = Math.ceil(endMinutesFromScheduleStart / 15);
-    
-    // Количество ячеек которые занимает заказ
+
+
     const slotsCount = endSlotIndex - startSlotIndex;
-    
-    // Позиция и ширина в процентах (каждая ячейка = 100% / 24)
+
+
     const slotWidthPercent = 100 / totalSlots;
     const left = startSlotIndex * slotWidthPercent;
     const width = slotsCount * slotWidthPercent;
 
     return { left: `${left}%`, width: `${width}%` };
   };
+
 
   const getOrderProgress = (order) => {
     if (order.status !== 'in_progress' || !order.scheduled_time || !order.service_duration) {
@@ -211,18 +216,20 @@ function Schedule() {
     return (elapsed / totalDuration) * 100;
   };
 
+
   const getOrderColor = (order) => {
     switch (order.status) {
       case 'pending':
-        return '#f39c12'; // Оранжевый
+        return '#f39c12';
       case 'in_progress':
-        return '#3498db'; // Синий
+        return '#3498db';
       case 'completed':
-        return '#2ecc71'; // Зеленый
+        return '#2ecc71';
       default:
-        return '#95a5a6'; // Серый
+        return '#95a5a6';
     }
   };
+
 
   const isOrderOverdue = (order) => {
     if (order.status !== 'in_progress' || !order.scheduled_time || !order.total_duration) {
@@ -233,10 +240,10 @@ function Schedule() {
     return currentTime > orderEnd;
   };
 
-  // Завершить заказ (не трогаем поле is_paid - оно остаётся как в БД)
+
   const handleCompleteOrder = async (orderId) => {
     try {
-      await api.put(`/orders/${orderId}`, {
+      await axios.put(`${API_URL}/orders/${orderId}`, {
         status: 'completed',
         completed_time: new Date().toISOString()
       });
@@ -248,9 +255,10 @@ function Schedule() {
     }
   };
 
+
   const handleCancelOrder = async (orderId) => {
     try {
-      await api.put(`/orders/${orderId}`, {
+      await axios.put(`${API_URL}/orders/${orderId}`, {
         status: 'cancelled'
       });
       setSelectedOrder(null);
@@ -261,9 +269,10 @@ function Schedule() {
     }
   };
 
+
   const handleDeleteOrder = async (orderId) => {
     try {
-      await api.delete(`/orders/${orderId}`);
+      await axios.delete(`${API_URL}/orders/${orderId}`);
       setSelectedOrder(null);
       loadData();
     } catch (error) {
@@ -272,12 +281,13 @@ function Schedule() {
     }
   };
 
+
   const handleChangeStatus = async (orderId, newStatus) => {
     try {
-      await api.put(`/orders/${orderId}`, {
+      await axios.put(`${API_URL}/orders/${orderId}`, {
         status: newStatus
       });
-      // Обновляем выбранный заказ локально
+
       setSelectedOrder(prev => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev);
       loadData();
     } catch (error) {
@@ -286,12 +296,13 @@ function Schedule() {
     }
   };
 
+
   const handleMarkAsPaid = async (orderId) => {
     try {
-      await api.put(`/orders/${orderId}`, {
+      await axios.put(`${API_URL}/orders/${orderId}`, {
         is_paid: true
       });
-      // Обновляем выбранный заказ локально
+
       setSelectedOrder(prev => prev && prev.id === orderId ? { ...prev, is_paid: true } : prev);
       loadData();
     } catch (error) {
@@ -300,8 +311,9 @@ function Schedule() {
     }
   };
 
+
   const handleOrderClick = (order) => {
-    // Если кликнули на тот же заказ - закрываем панель
+
     if (selectedOrder && selectedOrder.id === order.id) {
       setSelectedOrder(null);
     } else {
@@ -309,13 +321,14 @@ function Schedule() {
     }
   };
 
-  // Проверка, является ли время текущим (интервал ПОСЛЕ этой метки)
+
   const isCurrentTime = (time) => {
     const now = currentTime;
     const nextSlot = new Date(time.getTime() + 15 * 60 * 1000);
-    // Проверяем что текущее время БОЛЬШЕ этой метки и МЕНЬШЕ следующей
+
     return now > time && now <= nextSlot;
   };
+
 
   const getCurrentTimePosition = () => {
     const scheduleStart = timeSlots[0];
@@ -324,11 +337,11 @@ function Schedule() {
 
     if (now < scheduleStart || now > scheduleEnd) return null;
 
-    // Вычисляем позицию так же как для заказов - через ячейки
-    const totalSlots = timeSlots.length; // 24 ячейки
+
+    const totalSlots = timeSlots.length;
     const minutesFromScheduleStart = (now - scheduleStart) / (60 * 1000);
-    
-    // Позиция в процентах от начала (каждая ячейка = 100% / 24)
+
+
     const slotWidthPercent = 100 / totalSlots;
     const left = (minutesFromScheduleStart / 15) * slotWidthPercent;
 
@@ -338,7 +351,6 @@ function Schedule() {
   if (loading) {
     return (
       <div className="loading" style={{ padding: '3rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
         <div>Загрузка расписания...</div>
       </div>
     );
@@ -347,11 +359,10 @@ function Schedule() {
   if (error) {
     return (
       <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '1rem', color: '#e74c3c' }}>❌</div>
         <div style={{ color: '#e74c3c', marginBottom: '1rem' }}>Ошибка загрузки данных</div>
         <div style={{ color: '#7f8c8d', fontSize: '0.9rem' }}>{error}</div>
-        <button 
-          className="btn btn-primary" 
+        <button
+          className="btn btn-primary"
           style={{ marginTop: '1rem' }}
           onClick={loadData}
         >
@@ -378,8 +389,8 @@ function Schedule() {
             <span>Завершен</span>
           </div>
         </div>
-        <button 
-          className="btn btn-success" 
+        <button
+          className="btn btn-success"
           style={{ fontSize: '1.1rem', padding: '0.75rem 2rem', margin: '0.1rem 0' }}
           onClick={() => setShowNewOrderModal(true)}
         >
@@ -387,7 +398,7 @@ function Schedule() {
         </button>
       </div>
 
-      {/* Панель управления выбранным заказом или пустое место */}
+
       {selectedOrder ? (
         <div className="order-control-panel">
           <div className="order-control-info">
@@ -407,7 +418,7 @@ function Schedule() {
           </div>
           <div className="order-control-buttons">
             {selectedOrder.status !== 'in_progress' && (
-              <button 
+              <button
                 className="btn btn-primary"
                 onClick={() => handleChangeStatus(selectedOrder.id, 'in_progress')}
               >
@@ -415,7 +426,7 @@ function Schedule() {
               </button>
             )}
             {selectedOrder.status !== 'pending' && selectedOrder.status !== 'completed' && (
-              <button 
+              <button
                 className="btn"
                 style={{ backgroundColor: '#f39c12', color: 'white' }}
                 onClick={() => handleChangeStatus(selectedOrder.id, 'pending')}
@@ -424,7 +435,7 @@ function Schedule() {
               </button>
             )}
             {selectedOrder.status !== 'completed' && (
-              <button 
+              <button
                 className="btn btn-success"
                 onClick={() => handleCompleteOrder(selectedOrder.id)}
               >
@@ -432,7 +443,7 @@ function Schedule() {
               </button>
             )}
             {!selectedOrder.is_paid && (
-              <button 
+              <button
                 className="btn"
                 style={{ backgroundColor: '#27ae60', color: 'white' }}
                 onClick={() => handleMarkAsPaid(selectedOrder.id)}
@@ -440,7 +451,7 @@ function Schedule() {
                 Оплачен
               </button>
             )}
-            <button 
+            <button
               className="btn btn-danger"
               onClick={() => {
                 if (window.confirm('ВНИМАНИЕ! Вы действительно хотите УДАЛИТЬ этот заказ?\n\nЭто действие нельзя отменить!')) {
@@ -458,22 +469,21 @@ function Schedule() {
 
       {boxes.length === 0 ? (
         <div className="card empty-schedule">
-          <div className="empty-schedule-icon">📦</div>
           <div className="empty-schedule-text">Боксы не настроены</div>
           <div className="empty-schedule-hint">
             Перейдите в раздел "Настройки" чтобы добавить боксы
           </div>
-          <button 
-            className="btn btn-primary" 
+          <button
+            className="btn btn-primary"
             style={{ marginTop: '1rem' }}
             onClick={loadData}
           >
-            🔄 Обновить
+            Обновить
           </button>
           <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px', fontSize: '0.85rem', color: '#7f8c8d' }}>
             <strong>Отладка:</strong><br/>
             Загружено боксов: {boxes.length}<br/>
-            API URL: /boxes
+            API URL: {API_URL}/boxes
           </div>
         </div>
       ) : (
@@ -487,7 +497,7 @@ function Schedule() {
                     {timeSlots.map((time, index) => {
                       const nextTime = index < timeSlots.length - 1 ? timeSlots[index + 1] : null;
                       const shouldHighlight = nextTime && isCurrentTime(time);
-                      
+
                       return (
                         <div key={index} className="timeline-slot-wrapper">
                           <div className={`time-slot ${isHourStart(time) ? 'hour-mark' : ''}`}>
@@ -505,7 +515,7 @@ function Schedule() {
               {boxes.map((box) => {
                 const boxOrders = orders.filter(o => o.box_id === box.id);
                 const employeeName = getEmployeeForBox(box.id);
-                
+
                 return (
                   <tr key={box.id}>
                     <td className="box-name-cell">
@@ -516,7 +526,7 @@ function Schedule() {
                     </td>
                     <td className="timeline-cell">
                       <div className="timeline-grid">
-                        {/* Сетка временных слотов */}
+
                         {timeSlots.map((time, index) => (
                           <div
                             key={index}
@@ -525,8 +535,8 @@ function Schedule() {
                             <div className={`grid-slot ${isHourStart(time) ? 'hour-mark' : ''}`}></div>
                           </div>
                         ))}
-                        
-                        {/* Заказы как карточки */}
+
+
                         {boxOrders.map((order) => {
                           const position = getOrderPosition(order);
                           if (!position) return null;
@@ -545,7 +555,7 @@ function Schedule() {
                                 width: position.width,
                                 backgroundColor: color
                               }}
-                              title={`${order.client_name}\n${order.car_license_plate || ''} ${order.car_info || ''}\n${order.service_names}\n${isUnpaid ? '❌ НЕ ОПЛАЧЕН' : '✓ Оплачен'}\nКликните для управления`}
+                              title={`${order.client_name}\n${order.car_license_plate || ''} ${order.car_info || ''}\n${order.service_names}\n${isUnpaid ? ' НЕ ОПЛАЧЕН' : ' Оплачен'}\nКликните для управления`}
                               onClick={() => handleOrderClick(order)}
                             >
                               {order.status === 'in_progress' && (
@@ -562,8 +572,8 @@ function Schedule() {
                             </div>
                           );
                         })}
-                        
-                        {/* Индикатор текущего времени */}
+
+
                         {getCurrentTimePosition() && (
                           <div
                             className="current-time-line"
@@ -580,7 +590,7 @@ function Schedule() {
         </div>
       )}
 
-      {/* Модальное окно нового заказа */}
+
       <NewOrderModal
         isOpen={showNewOrderModal}
         onClose={() => setShowNewOrderModal(false)}

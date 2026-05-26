@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import axios from 'axios';
 import './EmployeeCalendar.css';
+
+const API_URL = 'http://localhost:5000/api';
 
 const MONTH_NAMES = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
@@ -16,7 +18,6 @@ function EmployeeCalendar({ employee, onBack }) {
 
   useEffect(() => {
     loadSchedules();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMonth]);
 
   const loadSchedules = async () => {
@@ -27,7 +28,7 @@ function EmployeeCalendar({ employee, onBack }) {
       const lastDay = new Date(year, month + 1, 0).getDate();
       const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-      const response = await api.get(`/box-schedules`, {
+      const response = await axios.get(`${API_URL}/box-schedules`, {
         params: { start_date: startDate, end_date: endDate }
       });
 
@@ -68,20 +69,20 @@ function EmployeeCalendar({ employee, onBack }) {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    
-    // День недели первого числа (0 = воскресенье, 1 = понедельник)
+
+
     let startDay = firstDay.getDay();
-    // Преобразуем: Пн=0, Вт=1, ..., Вс=6
+
     startDay = startDay === 0 ? 6 : startDay - 1;
 
     const cells = [];
-    
-    // Пустые ячейки в начале
+
+
     for (let i = 0; i < startDay; i++) {
       cells.push({ empty: true, key: `empty-${i}` });
     }
-    
-    // Дни месяца
+
+
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       cells.push({
@@ -91,18 +92,18 @@ function EmployeeCalendar({ employee, onBack }) {
         key: `day-${day}`
       });
     }
-    
-    // Дополняем до полных недель
+
+
     while (cells.length % 7 !== 0) {
       cells.push({ empty: true, key: `empty-end-${cells.length}` });
     }
-    
-    // Разбиваем на недели
+
+
     const weeks = [];
     for (let i = 0; i < cells.length; i += 7) {
       weeks.push(cells.slice(i, i + 7));
     }
-    
+
     return weeks;
   };
 
@@ -127,7 +128,7 @@ function EmployeeCalendar({ employee, onBack }) {
           ← Назад к списку
         </button>
         <h3 className="calendar-employee-title">
-          {employee.full_name} — {employee.position_name}
+          {employee.full_name} - {employee.position_name}
         </h3>
       </div>
 
@@ -143,31 +144,31 @@ function EmployeeCalendar({ employee, onBack }) {
             <div key={wd} className="cal-weekday">{wd}</div>
           ))}
         </div>
-        
+
         {weeks.map((week, weekIdx) => (
           <div key={weekIdx} className="calendar-week-row">
             {week.map(cell => {
               if (cell.empty) {
                 return <div key={cell.key} className="cal-cell empty" />;
               }
-              
+
               const daySchedules = getSchedulesForDate(cell.dateStr);
               const sick = isSickDay(cell.dateStr);
               const past = isPastDay(cell.dateStr);
               const today = isTodayDay(cell.dateStr);
-              
+
               const classNames = ['cal-cell'];
               if (sick) classNames.push('sick');
               else if (today) classNames.push('today');
               else if (past) classNames.push('past');
-              
+
               return (
                 <div key={cell.key} className={classNames.join(' ')}>
                   <div className="cal-day-num">{cell.day}</div>
                   {daySchedules.slice(0, 2).map((s, i) => (
                     <div key={i} className="cal-shift" title={`${s.box_name} ${s.start_time}-${s.end_time}`}>
                       <div className="cal-shift-box">{s.box_name}</div>
-                      <div className="cal-shift-time">{s.start_time}–{s.end_time}</div>
+                      <div className="cal-shift-time">{s.start_time}-{s.end_time}</div>
                     </div>
                   ))}
                   {daySchedules.length > 2 && (

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import api from "../api";
+import axios from "axios";
 import "./BoxSchedule.css";
 import DayShiftsModal from "./DayShiftsModal";
 import { hasPermission } from "../auth";
 
-// Форматирование ФИО в формат "Фамилия И.О."
+const API_URL = "http://localhost:5000/api";
+
+
 const formatShortName = (fullName) => {
   if (!fullName) return "";
   const parts = fullName.trim().split(/\s+/);
@@ -18,7 +20,7 @@ const formatShortName = (fullName) => {
 };
 
 function BoxSchedule() {
-  // Вычисляем понедельник текущей недели
+
   const getMonday = (date) => {
     const d = new Date(date);
     const dayOfWeek = d.getDay();
@@ -36,11 +38,11 @@ function BoxSchedule() {
   const [employees, setEmployees] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [startDate, setStartDate] = useState(getMonday(new Date())); // Начинаем с понедельника
+  const [startDate, setStartDate] = useState(getMonday(new Date()));
   const [showShiftsModal, setShowShiftsModal] = useState(false);
   const [shiftsModalDate, setShiftsModalDate] = useState(null);
   const [shiftsModalBox, setShiftsModalBox] = useState(null);
-  const [selectedCells, setSelectedCells] = useState([]); // Массив выбранных ячеек {boxId, date}
+  const [selectedCells, setSelectedCells] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -55,14 +57,14 @@ function BoxSchedule() {
   const loadData = async () => {
     try {
       const [boxesRes, employeesRes] = await Promise.all([
-        api.get(`/boxes`),
-        api.get(`/employees`),
+        axios.get(`${API_URL}/boxes`),
+        axios.get(`${API_URL}/employees`),
       ]);
       setBoxes(boxesRes.data.filter((b) => b.is_active));
       setEmployees(employeesRes.data);
       setLoading(false);
 
-      // Загружаем расписания после загрузки боксов
+
       if (boxesRes.data.length > 0) {
         loadSchedules();
       }
@@ -75,9 +77,9 @@ function BoxSchedule() {
   const loadSchedules = async () => {
     try {
       const start = formatDate(startDate);
-      const end = formatDate(addDays(startDate, 6)); // 7 дней (неделя)
+      const end = formatDate(addDays(startDate, 6));
 
-      const response = await api.get(`/box-schedules`, {
+      const response = await axios.get(`${API_URL}/box-schedules`, {
         params: { start_date: start, end_date: end },
       });
       setSchedules(response.data);
@@ -96,7 +98,7 @@ function BoxSchedule() {
   const getDatesArray = () => {
     const dates = [];
     for (let i = 0; i < 7; i++) {
-      // 7 дней (неделя)
+
       dates.push(addDays(startDate, i));
     }
     return dates;
@@ -110,34 +112,34 @@ function BoxSchedule() {
   const handleCellClick = (boxId, date, e) => {
     const dateStr = formatDate(date);
 
-    // Если зажат Ctrl/Cmd - добавляем/убираем ячейку из выбранных
+
     if (e.ctrlKey || e.metaKey) {
       const isSelected = selectedCells.some(
         (c) => c.boxId === boxId && c.date === dateStr,
       );
 
       if (isSelected) {
-        // Убираем из выбранных
+
         setSelectedCells(
           selectedCells.filter(
             (c) => !(c.boxId === boxId && c.date === dateStr),
           ),
         );
       } else {
-        // Проверяем что все выбранные ячейки относятся к одному боксу
+
         if (selectedCells.length > 0 && selectedCells[0].boxId !== boxId) {
           alert(
             "Можно выбирать ячейки только одного бокса.\nСотрудник не может работать одновременно в нескольких боксах.",
           );
           return;
         }
-        // Добавляем в выбранные
+
         setSelectedCells([...selectedCells, { boxId, date: dateStr }]);
       }
       return;
     }
 
-    // Обычный клик - открываем модальное окно
+
     const box = boxes.find((b) => b.id === boxId);
     setShiftsModalBox(box);
     setShiftsModalDate(dateStr);
@@ -147,7 +149,7 @@ function BoxSchedule() {
   const handleClearCell = async (scheduleId) => {
     if (window.confirm("Убрать назначение сотрудника?")) {
       try {
-        await api.delete(`/box-schedules/${scheduleId}`);
+        await axios.delete(`${API_URL}/box-schedules/${scheduleId}`);
         loadSchedules();
       } catch (error) {
         console.error("Ошибка удаления назначения:", error);
@@ -164,10 +166,10 @@ function BoxSchedule() {
   };
 
   const goToToday = () => {
-    // Переходим к началу текущей недели (понедельник)
+
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = воскресенье, 1 = понедельник, ...
-    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Если воскресенье, то -6, иначе 1 - день недели
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = addDays(today, daysToMonday);
     setStartDate(monday);
   };
@@ -211,7 +213,7 @@ function BoxSchedule() {
     <div className="box-schedule-container">
       <h2 className="page-title">Расписание сотрудников на боксах (неделя)</h2>
 
-      {/* Навигация по неделям */}
+
       <div className="schedule-navigation">
         <button className="btn btn-secondary" onClick={goToPreviousWeek}>
           ← Предыдущая неделя
@@ -224,7 +226,7 @@ function BoxSchedule() {
         </button>
       </div>
 
-      {/* Таблица расписания */}
+
       <div className="schedule-table-wrapper">
         <table className="schedule-table">
           <thead>
@@ -319,7 +321,6 @@ function BoxSchedule() {
 
       {boxes.length === 0 && (
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📦</div>
           <div style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>
             Нет активных боксов
           </div>
@@ -339,7 +340,6 @@ function BoxSchedule() {
             background: "#fff3cd",
           }}
         >
-          <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>⚠️</div>
           <div style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
             Нет сотрудников
           </div>
@@ -389,7 +389,7 @@ function BoxSchedule() {
         onSuccess={() => {
           loadSchedules();
           setShowShiftsModal(false);
-          setSelectedCells([]); // Очищаем выбор после успешного назначения
+          setSelectedCells([]);
         }}
         selectedDate={shiftsModalDate}
         selectedBox={shiftsModalBox}
@@ -397,7 +397,7 @@ function BoxSchedule() {
         selectedCells={selectedCells}
       />
 
-      {/* Фиксированная панель выбранных ячеек */}
+
       {selectedCells.length > 0 && canEdit && (
         <div className="fixed-selection-panel">
           <div className="selection-panel-content">
@@ -415,7 +415,7 @@ function BoxSchedule() {
               <button
                 className="btn btn-primary"
                 onClick={() => {
-                  // Открываем модальное окно для первой выбранной ячейки
+
                   const firstCell = selectedCells[0];
                   const box = boxes.find((b) => b.id === firstCell.boxId);
                   setShiftsModalBox(box);

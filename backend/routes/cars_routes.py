@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from extensions import db
 from models import Car
 
+
 bp = Blueprint("cars", __name__)
 
 
@@ -15,7 +16,7 @@ def get_cars():
     query = Car.query.filter_by(is_active=True)
 
     if search:
-        like = f"%{search}%"
+        like = f"%{search }%"
         from sqlalchemy import or_
 
         query = query.filter(
@@ -66,6 +67,9 @@ def search_car():
 def create_car():
     data = request.json
 
+    print(f"\n=== СОЗДАНИЕ АВТОМОБИЛЯ ===")
+    print(f"Входные данные: {data }")
+
     license_plate_input = data.get("license_plate")
     if not license_plate_input:
         return jsonify({"error": "License plate is required"}), 400
@@ -73,18 +77,25 @@ def create_car():
     license_plate = license_plate_input.upper()
 
     try:
-        # Проверка существования активного автомобиля с таким номером
+
         existing_active = Car.query.filter_by(
             license_plate=license_plate, is_active=True
         ).first()
         if existing_active:
-            return jsonify(
-                {
-                    "error": f"Автомобиль с номером {license_plate} уже существует в системе",
-                    "existing_car": existing_active.to_dict(),
-                }
-            ), 409
+            print(
+                f"Найден активный автомобиль ID={existing_active .id } с номером {license_plate }"
+            )
+            return (
+                jsonify(
+                    {
+                        "error": f"Автомобиль с номером {license_plate } уже существует в системе",
+                        "existing_car": existing_active.to_dict(),
+                    }
+                ),
+                409,
+            )
 
+        print(f"Создание нового автомобиля с номером {license_plate }")
         car = Car(
             license_plate=license_plate,
             brand=data.get("brand"),
@@ -93,20 +104,30 @@ def create_car():
         )
         db.session.add(car)
         db.session.commit()
+        print(f"Автомобиль создан успешно: ID={car .id }")
+        print("=== КОНЕЦ ===\n")
         return jsonify(car.to_dict()), 201
 
     except Exception as e:
         db.session.rollback()
+        print(f" ОШИБКА создания автомобиля: {e }")
+        print(f"Тип ошибки: {type (e ).__name__ }")
+        import traceback
 
-        # Проверяем, не связана ли ошибка с уникальностью номера
+        traceback.print_exc()
+        print("=== КОНЕЦ ===\n")
+
         if "unique" in str(e).lower() or "duplicate" in str(e).lower():
-            return jsonify(
-                {
-                    "error": f"Автомобиль с номером {license_plate} уже существует в системе"
-                }
-            ), 400
+            return (
+                jsonify(
+                    {
+                        "error": f"Автомобиль с номером {license_plate } уже существует в системе"
+                    }
+                ),
+                400,
+            )
 
-        return jsonify({"error": f"Ошибка создания автомобиля: {str(e)}"}), 500
+        return jsonify({"error": f"Ошибка создания автомобиля: {str (e )}"}), 500
 
 
 @bp.route("/api/cars/<int:id>", methods=["PUT"])
@@ -114,17 +135,17 @@ def update_car(id):
     car = Car.query.get_or_404(id)
     data = request.json
 
-    # Разрешаем изменение гос. номера
     if "license_plate" in data:
         new_plate = data["license_plate"].upper()
-        # Проверяем, не занят ли новый номер другим активным автомобилем
+
         existing = Car.query.filter(
             Car.license_plate == new_plate, Car.is_active == True, Car.id != id
         ).first()
         if existing:
-            return jsonify(
-                {"error": f"Автомобиль с номером {new_plate} уже существует"}
-            ), 400
+            return (
+                jsonify({"error": f"Автомобиль с номером {new_plate } уже существует"}),
+                400,
+            )
         car.license_plate = new_plate
 
     car.brand = data.get("brand", car.brand)
@@ -137,6 +158,10 @@ def update_car(id):
 @bp.route("/api/cars/<int:id>", methods=["DELETE"])
 def delete_car(id):
     car = Car.query.get_or_404(id)
+
+    original_plate = car.license_plate
     car.is_active = False
     db.session.commit()
+
+    print(f"Автомобиль ID={id } мягко удален. Номер сохранен: {original_plate }")
     return "", 204

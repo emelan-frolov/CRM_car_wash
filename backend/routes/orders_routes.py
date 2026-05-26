@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, request
+from sqlalchemy.orm import joinedload
 
 from extensions import db
-from models import Box, BoxSchedule, Order, OrderService, Service
+from models import Box, BoxSchedule, Client, Order, OrderService, Service
+
 
 bp = Blueprint("orders", __name__)
 
@@ -20,12 +22,10 @@ def get_orders():
     if search_name or search_phone:
         from sqlalchemy import or_
 
-        from models import Client
-
         query = query.join(Client, Order.client_id == Client.id)
 
         if search_name:
-            like = f"%{search_name}%"
+            like = f"%{search_name }%"
             query = query.filter(
                 or_(
                     Client.first_name.ilike(like),
@@ -37,7 +37,7 @@ def get_orders():
         if search_phone:
             clean_phone = "".join(ch for ch in search_phone if ch.isdigit())
             if clean_phone:
-                query = query.filter(Client.phone.ilike(f"%{clean_phone}%"))
+                query = query.filter(Client.phone.ilike(f"%{clean_phone }%"))
 
     if page is None or page_size is None:
         orders = query.all()
@@ -63,7 +63,8 @@ def get_orders():
 
 @bp.route("/api/orders/schedule", methods=["GET"])
 def get_schedule():
-    """Получить заказы для расписания (окно 6 часов: -2/+4 от текущего, в пределах 10:00–22:00)"""
+    from datetime import timedelta
+
     from sqlalchemy.orm import joinedload
 
     now = datetime.now()
@@ -120,54 +121,78 @@ def get_schedule():
 
 @bp.route("/api/orders", methods=["POST"])
 def create_order():
-    data = request.json
+    data = request.json or {}
 
     service_ids = data.get("service_ids", [])
     if not service_ids:
         return jsonify({"error": "At least one service is required"}), 400
 
-    services = Service.query.filter(Service.id.in_(service_ids)).all()
+    try:
+        service_ids = [int(service_id) for service_id in service_ids]
+    except (TypeError, ValueError):
+        return jsonify({"error": "Некорректный список услуг"}), 400
+
+    service_ids = list(dict.fromkeys(service_ids))
+    services = Service.query.filter(
+        Service.id.in_(service_ids), Service.is_active == True
+    ).all()
+
+    if len(services) != len(service_ids):
+        return jsonify({"error": "Одна или несколько услуг не найдены или неактивны"}), 400
+
     total_price = sum(s.price for s in services)
     total_duration = sum(s.duration for s in services if s.duration)
 
     if not total_duration or total_duration <= 0:
         return jsonify({"error": "Не удалось определить длительность услуг"}), 400
 
-    if data.get("scheduled_time"):
-        scheduled_time = datetime.fromisoformat(data["scheduled_time"])
-        if scheduled_time.minute % 15 != 0 or scheduled_time.second != 0:
-            return jsonify(
-                {"error": "Scheduled time must be in 15-minute intervals"}
-            ), 400
-    else:
-        scheduled_time = None
-
     box_id = data.get("box_id")
+    if not box_id:
+        return jsonify({"error": "Выберите бокс"}), 400
 
-    # ЗАЩИТА ОТ DOUBLE-BOOKING
-    if box_id and scheduled_time:
-        Box.query.filter_by(id=box_id).with_for_update().first()
+    if not data.get("scheduled_time"):
+        return jsonify({"error": "Выберите дату и время записи"}), 400
 
-        order_end = scheduled_time + timedelta(minutes=total_duration)
-        existing_orders = Order.query.filter(
-            Order.box_id == box_id,
-            Order.status.in_(["pending", "in_progress"]),
-            Order.scheduled_time.isnot(None),
-        ).all()
+    if data.get("scheduled_time"):
+        try:
+            scheduled_time = datetime.fromisoformat(data["scheduled_time"])
+        except (ValueError, TypeError):
+            return jsonify({"error": "Неверный формат даты и времени"}), 400
 
-        for existing in existing_orders:
-            existing_end = existing.scheduled_time + timedelta(
-                minutes=existing.total_duration or 0
-            )
-            if scheduled_time < existing_end and order_end > existing.scheduled_time:
-                db.session.rollback()
-                return jsonify(
+    if scheduled_time.minute % 15 != 0 or scheduled_time.second != 0:
+        return (
+            jsonify({"error": "Время записи должно быть кратно 15 минутам"}),
+            400,
+        )
+
+    box = Box.query.filter_by(id=box_id, is_active=True).with_for_update().first()
+    if not box:
+        return jsonify({"error": "Бокс не найден или неактивен"}), 404
+
+    order_end = scheduled_time + timedelta(minutes=total_duration)
+    existing_orders = Order.query.filter(
+        Order.box_id == box_id,
+        Order.status.in_(["pending", "in_progress"]),
+        Order.scheduled_time.isnot(None),
+    ).all()
+
+    for existing in existing_orders:
+        existing_end = existing.scheduled_time + timedelta(
+            minutes=existing.total_duration or 0
+        )
+
+        if scheduled_time < existing_end and order_end > existing.scheduled_time:
+            db.session.rollback()
+            return (
+                jsonify(
                     {
-                        "error": f"Время пересекается с существующим заказом #{existing.id} "
-                        f"({existing.scheduled_time.strftime('%H:%M')}-{existing_end.strftime('%H:%M')}). "
+                        "error": f"Время пересекается с существующим заказом #{existing .id } "
+                        f"({existing .scheduled_time .strftime ('%H:%M')}-{existing_end .strftime ('%H:%M')}). "
                         f"Выберите другое время или бокс."
                     }
-                ), 409
+                ),
+                409,
+            )
 
     order = Order(
         client_id=data["client_id"],
@@ -180,33 +205,33 @@ def create_order():
         notes=data.get("notes"),
     )
 
-    # Автоматически назначаем сотрудника на основе расписания бокса
     if order.box_id and scheduled_time:
-        schedule = BoxSchedule.query.filter(
+        schedules = BoxSchedule.query.filter(
             BoxSchedule.box_id == order.box_id,
             BoxSchedule.date == scheduled_time.date(),
-        ).first()
+        ).all()
+        order_time = scheduled_time.time()
 
-        if schedule:
+        for schedule in schedules:
             if schedule.start_time and schedule.end_time:
-                order_time = scheduled_time.time()
                 if schedule.start_time <= order_time < schedule.end_time:
                     order.employee_id = schedule.employee_id
+                    break
             else:
                 order.employee_id = schedule.employee_id
+                break
 
     db.session.add(order)
     db.session.flush()
 
-    # Добавляем связи с услугами (с фиксацией цены и % мойщику на момент заказа)
     services_by_id = {s.id: s for s in services}
     for service_id in service_ids:
         service = services_by_id.get(service_id)
         order_service = OrderService(
             order_id=order.id,
             service_id=service_id,
-            service_price=service.price if service else None,
-            washer_percentage=service.washer_percentage if service else None,
+            service_price=service.price,
+            washer_percentage=service.washer_percentage,
         )
         db.session.add(order_service)
 
@@ -239,7 +264,6 @@ def delete_order(id):
 
 @bp.route("/api/orders/available-slots-today", methods=["POST"])
 def get_available_slots_today():
-    """Получить ближайшие доступные слоты для каждого бокса на сегодня"""
     data = request.json
     total_duration = data.get("total_duration", 0)
 
@@ -282,6 +306,7 @@ def get_available_slots_today():
     result = []
 
     for box in boxes:
+
         current_minutes = current_time.minute
         rounded_minutes = ((current_minutes + 14) // 15) * 15
 
@@ -304,6 +329,7 @@ def get_available_slots_today():
         while search_time.hour < work_end_hour or (
             search_time.hour == work_end_hour and search_time.minute == 0
         ):
+
             if search_time < current_time:
                 search_time += timedelta(minutes=15)
                 continue
@@ -312,7 +338,7 @@ def get_available_slots_today():
             end_time = search_time + timedelta(minutes=total_duration)
 
             work_end_datetime = datetime.combine(
-                today, datetime.strptime(f"{work_end_hour}:00", "%H:%M").time()
+                today, datetime.strptime(f"{work_end_hour }:00", "%H:%M").time()
             )
             if end_time > work_end_datetime:
                 break

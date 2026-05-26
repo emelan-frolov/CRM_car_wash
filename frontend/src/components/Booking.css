@@ -4,7 +4,7 @@
   margin: 0 auto;
 }
 
-/* Прогресс-бар */
+
 .booking-progress {
   display: flex;
   align-items: center;
@@ -67,7 +67,7 @@
   margin: 0 1rem;
 }
 
-/* Список услуг */
+
 .services-list {
   display: flex;
   flex-direction: column;
@@ -149,7 +149,7 @@
   color: #3498db;
 }
 
-/* Сводка */
+
 .booking-summary {
   background: #f8f9fa;
   padding: 1.5rem;
@@ -170,7 +170,7 @@
   margin-bottom: 0.5rem;
 }
 
-/* Легенда календаря */
+
 .calendar-legend {
   display: flex;
   gap: 2rem;
@@ -193,7 +193,7 @@
   border-radius: 4px;
 }
 
-/* Календарь */
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -254,7 +254,7 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Временные слоты */
+
 .timeslots-grid {
   display: flex;
   flex-direction: column;
@@ -312,21 +312,21 @@
   transform: scale(1.05);
 }
 
-/* Пустое состояние */
+
 .empty-state {
   text-align: center;
   padding: 3rem;
   color: #7f8c8d;
 }
 
-/* Кнопки */
+
 .btn-large {
   padding: 1rem 2rem;
   font-size: 1.1rem;
   flex: 1;
 }
 
-/* Адаптивность */
+
 @media (max-width: 768px) {
   .booking-progress {
     padding: 1rem;

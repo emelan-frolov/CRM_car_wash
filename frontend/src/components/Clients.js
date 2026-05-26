@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import axios from 'axios';
 import Pagination from './Pagination';
 
+const API_URL = 'http://localhost:5000/api';
+
+
 const formatPhoneNumber = (value) => {
+
   const cleaned = value.replace(/\D/g, '');
+
+
   const limited = cleaned.slice(0, 11);
-  
-  // Формат: 7 (999) 123-45-67
+
+
   if (limited.length === 0) return '';
   if (limited.length <= 1) return limited;
   if (limited.length <= 4) return `${limited[0]} (${limited.slice(1)}`;
@@ -14,6 +20,7 @@ const formatPhoneNumber = (value) => {
   if (limited.length <= 9) return `${limited[0]} (${limited.slice(1, 4)}) ${limited.slice(4, 7)}-${limited.slice(7)}`;
   return `${limited[0]} (${limited.slice(1, 4)}) ${limited.slice(4, 7)}-${limited.slice(7, 9)}-${limited.slice(9, 11)}`;
 };
+
 
 const getCleanPhoneNumber = (formatted) => {
   return formatted.replace(/\D/g, '');
@@ -37,21 +44,21 @@ function Clients() {
     email: ''
   });
 
+
   useEffect(() => { setCurrentPage(1); }, [searchPhone]);
 
-  // Загрузка с дебаунсом для поиска
+
   useEffect(() => {
     const timer = setTimeout(() => {
       loadClients();
     }, searchPhone ? 300 : 0);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchPhone]);
 
   const loadClients = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/clients`, {
+      const response = await axios.get(`${API_URL}/clients`, {
         params: {
           page: currentPage,
           page_size: PAGE_SIZE,
@@ -70,35 +77,35 @@ function Clients() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Отправляем чистый номер без форматирования
+
       const dataToSend = {
         ...formData,
         phone: getCleanPhoneNumber(formData.phone)
       };
-      
+
       if (editingClient) {
-        // Редактирование
-        await api.put(`/clients/${editingClient.id}`, dataToSend);
-        alert('✅ Клиент успешно обновлен!');
+
+        await axios.put(`${API_URL}/clients/${editingClient.id}`, dataToSend);
+        alert('Клиент успешно обновлен!');
         setEditingClient(null);
       } else {
-        // Создание
-        await api.post(`/clients`, dataToSend);
-        alert('✅ Клиент успешно добавлен!');
+
+        await axios.post(`${API_URL}/clients`, dataToSend);
+        alert('Клиент успешно добавлен!');
       }
       setFormData({ first_name: '', last_name: '', middle_name: '', phone: '', email: '' });
       setShowForm(false);
       loadClients();
     } catch (error) {
       console.error('Ошибка сохранения клиента:', error);
-      
-      // Детальная обработка ошибок
+
+
       if (error.response) {
-        // Специальная обработка для дубликата клиента (409 Conflict)
+
         if (error.response.status === 409) {
           const errorData = error.response.data;
           const existingClient = errorData.existing_client;
-          let message = `⚠️ ${errorData.error}\n\n`;
+          let message = `${errorData.error}\n\n`;
           if (existingClient) {
             message += `Информация о существующем клиенте:\n`;
             message += `• ФИО: ${existingClient.last_name} ${existingClient.first_name} ${existingClient.middle_name || ''}\n`;
@@ -137,7 +144,7 @@ function Clients() {
   const handleDelete = async (id) => {
     if (window.confirm('Удалить клиента?')) {
       try {
-        await api.delete(`/clients/${id}`);
+        await axios.delete(`${API_URL}/clients/${id}`);
         setSelectedClient(null);
         loadClients();
       } catch (error) {
@@ -147,11 +154,11 @@ function Clients() {
   };
 
   const handleRowClick = (client) => {
-    if (showForm) return; // Не выбираем строку если открыта форма
+    if (showForm) return;
     setSelectedClient(selectedClient?.id === client.id ? null : client);
   };
 
-  // Серверная пагинация - данные уже отфильтрованы и обрезаны
+
   if (loading && clients.length === 0) return <div className="loading">Загрузка...</div>;
 
   return (
@@ -161,7 +168,7 @@ function Clients() {
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="🔍 Поиск по телефону..."
+            placeholder="Поиск по телефону..."
             value={searchPhone}
             onChange={(e) => setSearchPhone(e.target.value)}
             style={{
@@ -177,17 +184,17 @@ function Clients() {
           />
           {selectedClient && (
             <>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={() => handleEdit(selectedClient)}
               >
-                ✏️ Редактировать
+                 Редактировать
               </button>
-              <button 
-                className="btn btn-danger" 
+              <button
+                className="btn btn-danger"
                 onClick={() => handleDelete(selectedClient.id)}
               >
-                🗑️ Удалить
+                 Удалить
               </button>
             </>
           )}
@@ -267,7 +274,7 @@ function Clients() {
             </thead>
             <tbody>
               {clients.map(client => (
-                <tr 
+                <tr
                   key={client.id}
                   onClick={() => handleRowClick(client)}
                   style={{
@@ -285,7 +292,7 @@ function Clients() {
               ))}
             </tbody>
           </table>
-          <Pagination 
+          <Pagination
             currentPage={currentPage}
             totalItems={totalClients}
             pageSize={PAGE_SIZE}

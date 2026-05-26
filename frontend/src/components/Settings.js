@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:5000/api';
 
 function Settings() {
   const [boxes, setBoxes] = useState([]);
@@ -15,8 +17,10 @@ function Settings() {
 
   const loadBoxes = async () => {
     try {
-      const response = await api.get(`/boxes`);
-      setBoxes(response.data);
+      const response = await axios.get(`${API_URL}/boxes`, {
+        params: { include_inactive: true }
+      });
+      setBoxes(response.data.filter((box) => box.order_index >= 0));
       setLoading(false);
     } catch (error) {
       console.error('Ошибка загрузки боксов:', error);
@@ -27,7 +31,7 @@ function Settings() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post(`/boxes`, {
+      await axios.post(`${API_URL}/boxes`, {
         name: formData.name,
         order_index: boxes.length
       });
@@ -41,7 +45,7 @@ function Settings() {
 
   const toggleBoxStatus = async (box) => {
     try {
-      await api.put(`/boxes/${box.id}`, {
+      await axios.put(`${API_URL}/boxes/${box.id}`, {
         ...box,
         is_active: !box.is_active
       });
@@ -51,14 +55,20 @@ function Settings() {
     }
   };
 
-  const deleteBox = async (id) => {
-    if (window.confirm('Удалить бокс? Все связанные заказы останутся без бокса.')) {
-      try {
-        await api.delete(`/boxes/${id}`);
-        loadBoxes();
-      } catch (error) {
-        console.error('Ошибка удаления бокса:', error);
-      }
+  const deleteBox = async (box) => {
+    if (!window.confirm(`Удалить бокс "${box.name}"? Старые заказы сохранят привязку к этому боксу.`)) {
+      return;
+    }
+
+    try {
+      await axios.put(`${API_URL}/boxes/${box.id}`, {
+        ...box,
+        is_active: false,
+        order_index: -1
+      });
+      loadBoxes();
+    } catch (error) {
+      console.error('Ошибка удаления бокса:', error);
     }
   };
 
@@ -135,8 +145,10 @@ function Settings() {
                     </button>
                     <button
                       className="btn btn-danger"
-                      style={{ padding: '0.5rem 1rem' }}
-                      onClick={() => deleteBox(box.id)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                      }}
+                      onClick={() => deleteBox(box)}
                     >
                       Удалить
                     </button>
@@ -152,8 +164,8 @@ function Settings() {
         <h3>Информация</h3>
         <p style={{ marginTop: '1rem', color: '#7f8c8d' }}>
           • Боксы отображаются в расписании в порядке создания<br/>
-          • Неактивные боксы скрыты из расписания, но заказы сохраняются<br/>
-          • При удалении бокса связанные заказы останутся без привязки к боксу
+          • Деактивированный бокс можно снова активировать<br/>
+          • При удалении бокс скрывается из системы, но старые заказы сохраняют привязку к нему
         </p>
       </div>
     </div>

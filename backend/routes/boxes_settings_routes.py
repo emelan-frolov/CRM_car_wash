@@ -3,12 +3,20 @@ from flask import Blueprint, jsonify, request
 from extensions import db
 from models import Box, Settings
 
-bp = Blueprint("boxes", __name__)
+
+bp = Blueprint("boxes_settings", __name__)
 
 
 @bp.route("/api/boxes", methods=["GET"])
 def get_boxes():
-    boxes = Box.query.order_by(Box.order_index).all()
+    include_inactive = request.args.get("include_inactive") == "true"
+    include_deleted = request.args.get("include_deleted") == "true"
+    query = Box.query
+    if not include_deleted:
+        query = query.filter(Box.order_index >= 0)
+    if not include_inactive:
+        query = query.filter_by(is_active=True)
+    boxes = query.order_by(Box.order_index).all()
     return jsonify([box.to_dict() for box in boxes])
 
 
@@ -39,7 +47,8 @@ def update_box(id):
 @bp.route("/api/boxes/<int:id>", methods=["DELETE"])
 def delete_box(id):
     box = Box.query.get_or_404(id)
-    db.session.delete(box)
+    box.is_active = False
+    box.order_index = -1
     db.session.commit()
     return "", 204
 

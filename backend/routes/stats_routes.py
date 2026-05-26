@@ -6,18 +6,18 @@ from auth import permission_required
 from extensions import db
 from models import Box, BoxSchedule, Employee, Order, OrderService, Service
 
-bp = Blueprint("statistics", __name__)
+
+bp = Blueprint("stats", __name__)
 
 
 def _parse_period():
-    """Парсит query-параметры start_date и end_date.
-    Возвращает (start_dt, end_dt). end_dt — НА следующий день после end_date (полуинтервал)."""
     start_str = request.args.get("start_date")
     end_str = request.args.get("end_date")
 
     if start_str:
         start_dt = datetime.strptime(start_str, "%Y-%m-%d")
     else:
+
         start_dt = datetime.now().replace(
             hour=0, minute=0, second=0, microsecond=0
         ) - timedelta(days=30)
@@ -35,8 +35,8 @@ def _parse_period():
 @bp.route("/api/stats/finance", methods=["GET"])
 @permission_required("can_view_statistics")
 def stats_finance():
-    """Финансовые показатели."""
     from sqlalchemy import func
+    from sqlalchemy.orm import joinedload
 
     start_dt, end_dt = _parse_period()
 
@@ -126,7 +126,6 @@ def stats_finance():
 @bp.route("/api/stats/employees", methods=["GET"])
 @permission_required("can_view_statistics")
 def stats_employees():
-    """HR-аналитика."""
     from sqlalchemy import func
     from sqlalchemy.orm import joinedload
 
@@ -139,6 +138,7 @@ def stats_employees():
     result = []
 
     for emp in employees:
+
         emp_orders = (
             db.session.query(
                 func.count(Order.id).label("count"),
@@ -160,6 +160,7 @@ def stats_employees():
         hours_worked = 0.0
 
         if emp.salary_type == "fixed":
+
             shifts = BoxSchedule.query.filter(
                 BoxSchedule.employee_id == emp.id,
                 BoxSchedule.date >= start_date,
@@ -174,12 +175,14 @@ def stats_employees():
                     ).total_seconds() / 3600
                     hours_worked += h
                 else:
+
                     hours_worked += 12
 
             hourly_rate = emp.position.salary if emp.position else 0
             salary = round(hours_worked * hourly_rate, 2)
 
         else:
+
             piecework_sum = (
                 db.session.query(
                     func.coalesce(
@@ -210,12 +213,12 @@ def stats_employees():
         result.append(
             {
                 "id": emp.id,
-                "full_name": f"{emp.last_name} {emp.first_name}".strip(),
+                "full_name": f"{emp .last_name } {emp .first_name }".strip(),
                 "position_name": emp.position.name if emp.position else None,
                 "salary_type": emp.salary_type,
-                "salary_type_display": "Фиксированная"
-                if emp.salary_type == "fixed"
-                else "Сдельная",
+                "salary_type_display": (
+                    "Фиксированная" if emp.salary_type == "fixed" else "Сдельная"
+                ),
                 "status": emp.status,
                 "orders_count": orders_count,
                 "orders_revenue": orders_revenue,
@@ -240,7 +243,6 @@ def stats_employees():
 @bp.route("/api/stats/boxes", methods=["GET"])
 @permission_required("can_view_statistics")
 def stats_boxes():
-    """Операционная эффективность."""
     from sqlalchemy import extract, func
 
     start_dt, end_dt = _parse_period()
@@ -283,6 +285,7 @@ def stats_boxes():
     days_in_period = (end_date - start_date).days + 1
 
     for box in boxes:
+
         box_orders = (
             db.session.query(
                 func.count(Order.id).label("count"),

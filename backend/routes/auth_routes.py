@@ -1,16 +1,81 @@
+from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 
-from auth import owner_required
+from auth import (
+    _check_admin_schedule,
+    _generate_token,
+    login_required,
+    owner_required,
+    permission_required,
+)
 from extensions import db
-from models import AdminSchedule, Employee, User
+from models import AdminSchedule, Employee, ServicePriceHistory, User
 
-bp = Blueprint("users", __name__)
+
+bp = Blueprint("auth", __name__)
+
+
+@bp.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    data = request.json or {}
+    login = (data.get("login") or "").strip()
+    password = data.get("password") or ""
+
+    if not login or not password:
+        return jsonify({"error": "Логин и пароль обязательны"}), 400
+
+    user = User.query.filter_by(login=login).first()
+    if not user or not user.check_password(password):
+        return jsonify({"error": "Неверный логин или пароль"}), 401
+
+    if not user.is_active:
+        return jsonify({"error": "Учётная запись деактивирована"}), 403
+
+    if user.role == "admin":
+        check = _check_admin_schedule(user.id)
+        if not check["allowed"]:
+            return (
+                jsonify(
+                    {"error": check["message"], "next_shift": check.get("next_shift")}
+                ),
+                403,
+            )
+
+    user.last_login = datetime.now()
+    db.session.commit()
+
+    token = _generate_token(user)
+    return jsonify({"token": token, "user": user.to_dict()})
+
+
+@bp.route("/api/auth/me", methods=["GET"])
+@login_required
+def auth_me():
+    return jsonify(request.current_user.to_dict())
+
+
+@bp.route("/api/auth/admins-list", methods=["GET"])
+@permission_required("can_view_admin_schedule")
+def list_admins_for_schedule():
+    admins = User.query.filter_by(role="admin", is_active=True).all()
+    return jsonify(
+        [
+            {
+                "id": u.id,
+                "login": u.login,
+                "full_name": u.full_name,
+                "role": u.role,
+                "is_active": u.is_active,
+            }
+            for u in admins
+        ]
+    )
 
 
 @bp.route("/api/auth/users", methods=["GET"])
 @owner_required
 def list_users():
-    """Список всех пользователей (только для владельца)."""
     users = User.query.order_by(User.created_at.desc()).all()
     return jsonify([u.to_dict() for u in users])
 
@@ -18,11 +83,6 @@ def list_users():
 @bp.route("/api/auth/users", methods=["POST"])
 @owner_required
 def create_user():
-    """Создать нового администратора (только владелец).
-
-    Принимает employee_id - ID сотрудника из таблицы employees,
-    у которого должность с can_manage_system=True.
-    """
     data = request.json or {}
     login = (data.get("login") or "").strip()
     password = data.get("password") or ""
@@ -37,35 +97,39 @@ def create_user():
     if len(login) < 3:
         return jsonify({"error": "Логин должен быть не короче 3 символов"}), 400
 
-    # Проверка уникальности логина
     if User.query.filter_by(login=login).first():
         return jsonify({"error": "Пользователь с таким логином уже существует"}), 409
 
-    # Проверка сотрудника
     employee = Employee.query.get(employee_id)
     if not employee:
         return jsonify({"error": "Сотрудник не найден"}), 404
 
     if not employee.position or not employee.position.can_manage_system:
-        return jsonify(
-            {"error": "У должности этого сотрудника нет права управления системой"}
-        ), 400
+        return (
+            jsonify(
+                {"error": "У должности этого сотрудника нет права управления системой"}
+            ),
+            400,
+        )
 
     if employee.status != "active":
-        return jsonify(
-            {"error": "Нельзя создать админа из неактивного сотрудника"}
-        ), 400
+        return (
+            jsonify({"error": "Нельзя создать админа из неактивного сотрудника"}),
+            400,
+        )
 
-    # Проверка что у сотрудника ещё нет учётки
     existing_user = User.query.filter_by(employee_id=employee_id).first()
     if existing_user:
-        return jsonify(
-            {
-                "error": f"У этого сотрудника уже есть учётная запись: {existing_user.login}"
-            }
-        ), 409
+        return (
+            jsonify(
+                {
+                    "error": f"У этого сотрудника уже есть учётная запись: {existing_user .login }"
+                }
+            ),
+            409,
+        )
 
-    full_name = f"{employee.last_name} {employee.first_name} {employee.middle_name or ''}".strip()
+    full_name = f"{employee .last_name } {employee .first_name } {employee .middle_name or ''}".strip()
 
     user = User(
         login=login,
@@ -103,16 +167,8 @@ def create_user():
 @bp.route("/api/auth/eligible-employees", methods=["GET"])
 @owner_required
 def list_eligible_employees():
-    """Список сотрудников, которые могут стать админами.
-
-    Условия:
-    - status = 'active'
-    - position.can_manage_system = True
-    - ещё нет учётной записи в users
-    """
     from sqlalchemy.orm import joinedload
 
-    # ID сотрудников, которые уже имеют учётку
     used_ids = {
         u.employee_id for u in User.query.filter(User.employee_id.isnot(None)).all()
     }
@@ -132,7 +188,7 @@ def list_eligible_employees():
         result.append(
             {
                 "id": emp.id,
-                "full_name": f"{emp.last_name} {emp.first_name} {emp.middle_name or ''}".strip(),
+                "full_name": f"{emp .last_name } {emp .first_name } {emp .middle_name or ''}".strip(),
                 "phone": emp.phone,
                 "position_id": emp.position_id,
                 "position_name": emp.position.name,
@@ -145,10 +201,6 @@ def list_eligible_employees():
 @bp.route("/api/auth/users/<int:user_id>", methods=["DELETE"])
 @owner_required
 def delete_user(user_id):
-    """Удалить администратора (только владелец, нельзя удалить владельца и себя).
-
-    Каскадно удаляет все смены этого администратора.
-    """
     user = User.query.get_or_404(user_id)
 
     if user.role == "owner":
@@ -157,18 +209,23 @@ def delete_user(user_id):
     if user.id == request.current_user.id:
         return jsonify({"error": "Нельзя удалить себя"}), 400
 
-    # Удаляем все смены этого админа (FK не позволит удалить юзера, пока есть смены)
-    AdminSchedule.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    try:
+        AdminSchedule.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        ServicePriceHistory.query.filter_by(changed_by_user_id=user_id).update(
+            {"changed_by_user_id": None}, synchronize_session=False
+        )
 
-    db.session.delete(user)
-    db.session.commit()
-    return "", 204
+        db.session.delete(user)
+        db.session.commit()
+        return "", 204
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Ошибка удаления пользователя: {str(e)}"}), 500
 
 
 @bp.route("/api/auth/users/<int:user_id>/toggle-active", methods=["POST"])
 @owner_required
 def toggle_user_active(user_id):
-    """Активировать/деактивировать администратора."""
     user = User.query.get_or_404(user_id)
 
     if user.role == "owner":
@@ -182,10 +239,35 @@ def toggle_user_active(user_id):
     return jsonify(user.to_dict())
 
 
+@bp.route("/api/auth/change-password", methods=["POST"])
+@login_required
+def change_own_password():
+    user = request.current_user
+    data = request.json or {}
+
+    current_password = data.get("current_password") or ""
+    new_password = data.get("new_password") or ""
+
+    if not current_password or not new_password:
+        return jsonify({"error": "Текущий и новый пароль обязательны"}), 400
+
+    if not user.check_password(current_password):
+        return jsonify({"error": "Текущий пароль введён неверно"}), 401
+
+    if len(new_password) < 6:
+        return jsonify({"error": "Новый пароль должен быть не короче 6 символов"}), 400
+
+    if current_password == new_password:
+        return jsonify({"error": "Новый пароль должен отличаться от текущего"}), 400
+
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({"ok": True, "message": "Пароль успешно изменён"})
+
+
 @bp.route("/api/auth/users/<int:user_id>/reset-password", methods=["POST"])
 @owner_required
 def reset_user_password(user_id):
-    """Сменить пароль пользователя (только владелец)."""
     user = User.query.get_or_404(user_id)
     data = request.json or {}
     new_password = data.get("password") or ""
@@ -201,7 +283,6 @@ def reset_user_password(user_id):
 @bp.route("/api/auth/users/<int:user_id>/permissions", methods=["PUT"])
 @owner_required
 def update_user_permissions(user_id):
-    """Обновить права администратора (только владелец)."""
     user = User.query.get_or_404(user_id)
 
     if user.role == "owner":

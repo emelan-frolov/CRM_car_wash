@@ -1,4 +1,4 @@
-/* Кнопка экспорта с прогресс-заливкой */
+
 .export-progress-btn {
   position: relative;
   padding: 0.75rem 1.5rem;
@@ -14,7 +14,7 @@
   min-width: 220px;
 }
 
-/* Когда не идёт экспорт и не disabled - наведение делает кнопку зелёной */
+
 .export-progress-btn:not(.exporting):not(:disabled):hover {
   background: #27ae60;
 }
@@ -23,7 +23,7 @@
   color: white;
 }
 
-/* Когда идёт экспорт (кнопка отмены) - наведение делает рамку красной */
+
 .export-progress-btn.exporting:hover {
   border-color: #e74c3c;
 }
@@ -33,7 +33,7 @@
   opacity: 0.5;
 }
 
-/* Заливка прогрессом - линейная анимация для равномерности */
+
 .export-progress-btn::before {
   content: '';
   position: absolute;
@@ -46,7 +46,7 @@
   z-index: 0;
 }
 
-/* Контент кнопки поверх заливки */
+
 .export-btn-content {
   position: relative;
   z-index: 1;
@@ -55,8 +55,37 @@
   transition: color 0.2s;
 }
 
-/* Когда экспортируется - текст белый поверх зелёной заливки */
+
 .export-progress-btn.exporting .export-btn-content {
   color: white;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.orders-table-wrapper {
+  width: 100%;
+  overflow-x: visible;
+}
+
+.orders-table {
+  width: 100%;
+}
+
+.orders-table th,
+.orders-table td {
+  vertical-align: middle;
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
+}
+
+.orders-phone-cell {
+  width: 165px;
+  min-width: 165px;
+  white-space: nowrap;
+}
+
+.orders-card {
+  width: calc(100vw - 3rem);
+  max-width: none;
+  margin-left: 50%;
+  transform: translateX(-50%);
 }

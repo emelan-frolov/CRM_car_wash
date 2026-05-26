@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import api, { API_URL } from "../api";
+import axios from "axios";
 import Pagination from "./Pagination";
 import { hasPermission } from "../auth";
+
+const API_URL = "http://localhost:5000/api";
 
 function Services() {
   const [services, setServices] = useState([]);
@@ -33,13 +35,12 @@ function Services() {
       searchName ? 300 : 0,
     );
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchName]);
 
   const loadServices = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/services`, {
+      const response = await axios.get(`${API_URL}/services`, {
         params: {
           page: currentPage,
           page_size: PAGE_SIZE,
@@ -50,9 +51,9 @@ function Services() {
       setTotalServices(response.data.total || 0);
       setLoading(false);
     } catch (error) {
-      console.error("❌ Ошибка загрузки услуг:", error);
+      console.error("Ошибка загрузки услуг:", error);
       if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
-        alert("⚠️ Не удается подключиться к серверу!");
+        alert("Не удается подключиться к серверу!");
       }
       setLoading(false);
     }
@@ -71,10 +72,10 @@ function Services() {
       };
 
       if (editingService) {
-        await api.put(`/services/${editingService.id}`, payload);
+        await axios.put(`${API_URL}/services/${editingService.id}`, payload);
         setEditingService(null);
       } else {
-        await api.post(`/services`, payload);
+        await axios.post(`${API_URL}/services`, payload);
       }
 
       setFormData({
@@ -99,7 +100,7 @@ function Services() {
       description: service.description || "",
       price: service.price.toString(),
       duration: service.duration ? service.duration.toString() : "",
-      washer_percentage: service.washer_percentage
+        washer_percentage: service.washer_percentage
         ? service.washer_percentage.toString()
         : "",
     });
@@ -110,36 +111,36 @@ function Services() {
   const handleDelete = async (id) => {
     if (window.confirm("Удалить услугу?")) {
       try {
-        console.log("🗑️ Удаление услуги ID:", id);
-        await api.delete(`/services/${id}`);
-        console.log("✅ Услуга удалена");
+        console.log("Удаление услуги ID:", id);
+        await axios.delete(`${API_URL}/services/${id}`);
+        console.log("Услуга удалена");
         setSelectedService(null);
         loadServices();
       } catch (error) {
-        console.error("❌ Ошибка удаления услуги:", error);
+        console.error("Ошибка удаления услуги:", error);
 
         if (error.response) {
-          // Сервер ответил с ошибкой
-          console.error("📛 Ответ сервера:", error.response.data);
-          console.error("📛 Статус:", error.response.status);
+
+          console.error("Ответ сервера:", error.response.data);
+          console.error("Статус:", error.response.status);
           alert(
             `Ошибка сервера: ${error.response.data?.error || error.response.statusText}`,
           );
         } else if (error.request) {
-          // Запрос был отправлен, но ответа не получено
-          console.error("📛 Запрос отправлен, но ответа нет:", error.request);
-          console.error("📛 Проверьте:");
+
+          console.error("Запрос отправлен, но ответа нет:", error.request);
+          console.error("Проверьте:");
           console.error(
             "   1. Запущен ли backend сервер (http://localhost:5000)",
           );
-          console.error("   2. Нет ли блокировки CORS");
-          console.error("   3. Правильно ли настроен API_URL:", API_URL);
+          console.error("  2. Нет ли блокировки CORS");
+          console.error("  3. Правильно ли настроен API_URL:", API_URL);
           alert(
             "Ошибка подключения к серверу!\n\nПроверьте:\n1. Запущен ли backend (http://localhost:5000)\n2. Нет ли ошибок в консоли backend\n3. Откройте консоль браузера (F12) для деталей",
           );
         } else {
-          // Что-то пошло не так при настройке запроса
-          console.error("📛 Ошибка настройки запроса:", error.message);
+
+          console.error("Ошибка настройки запроса:", error.message);
           alert("Ошибка: " + error.message);
         }
       }
@@ -182,7 +183,7 @@ function Services() {
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
           <input
             type="text"
-            placeholder="🔍 Поиск по названию..."
+            placeholder="Поиск по названию..."
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
             style={{
@@ -201,7 +202,7 @@ function Services() {
               className="btn btn-primary"
               onClick={() => handleEdit(selectedService)}
             >
-              ✏️ Редактировать
+               Редактировать
             </button>
           )}
           {selectedService && hasPermission("can_delete_services") && (
@@ -209,7 +210,7 @@ function Services() {
               className="btn btn-danger"
               onClick={() => handleDelete(selectedService.id)}
             >
-              🗑️ Удалить
+               Удалить
             </button>
           )}
           {(hasPermission("can_create_services") || showForm) && (
@@ -319,7 +320,7 @@ function Services() {
               <small style={{ color: "#7f8c8d", fontSize: "0.85rem" }}>
                 {formData.washer_percentage && formData.price ? (
                   <>
-                    💰 Мойщик получит:{" "}
+                     Мойщик получит:{" "}
                     {(
                       parseFloat(formData.price) *
                       (parseFloat(formData.washer_percentage) / 100)

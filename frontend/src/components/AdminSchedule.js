@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import api from "../api";
+import axios from "axios";
 import { isOwner, hasPermission } from "../auth";
 import "./AdminSchedule.css";
+
+const API_URL = "http://localhost:5000/api";
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTH_NAMES = [
@@ -19,7 +21,7 @@ const MONTH_NAMES = [
   "Дек",
 ];
 
-// «Петров Иван Сергеевич» → «Петров И.С.»
+
 const shortName = (fullName) => {
   if (!fullName) return "";
   const parts = fullName.trim().split(/\s+/);
@@ -36,7 +38,7 @@ const formatDateKey = (d) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-// Цвет для админа (стабильный по id)
+
 const getAdminColor = (id) => {
   const colors = [
     {
@@ -76,11 +78,11 @@ function AdminSchedule() {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Текущий период (2 недели)
+
   const [weekStart, setWeekStart] = useState(() => {
     const today = new Date();
     const d = new Date(today);
-    const day = d.getDay() === 0 ? 6 : d.getDay() - 1; // Пн = 0
+    const day = d.getDay() === 0 ? 6 : d.getDay() - 1;
     d.setDate(d.getDate() - day);
     d.setHours(0, 0, 0, 0);
     return d;
@@ -101,13 +103,13 @@ function AdminSchedule() {
       const endDate = new Date(weekStart);
       endDate.setDate(endDate.getDate() + 13);
 
-      // Используем endpoint, доступный и админам с правом can_view_admin_schedule
-      const adminsUrl = isOwner()
-        ? '/auth/users'
-        : '/auth/admins-list';
 
-      // Запросы делаем независимо, чтобы ошибка одного не блокировала другой
-      const adminsPromise = api.get(adminsUrl).catch((err) => {
+      const adminsUrl = isOwner()
+        ? `${API_URL}/auth/users`
+        : `${API_URL}/auth/admins-list`;
+
+
+      const adminsPromise = axios.get(adminsUrl).catch((err) => {
         console.error(
           "Ошибка загрузки списка админов:",
           err.response?.status,
@@ -115,8 +117,8 @@ function AdminSchedule() {
         );
         return null;
       });
-      const schedulesPromise = api
-        .get('/admin-schedules', {
+      const schedulesPromise = axios
+        .get(`${API_URL}/admin-schedules`, {
           params: {
             start_date: formatDateKey(weekStart),
             end_date: formatDateKey(endDate),
@@ -137,7 +139,7 @@ function AdminSchedule() {
       ]);
 
       if (adminsRes) {
-        // Только активные админы (не владелец)
+
         setAdmins(
           adminsRes.data.filter((u) => u.role === "admin" && u.is_active),
         );
@@ -179,7 +181,7 @@ function AdminSchedule() {
     setWeekStart(d);
   };
 
-  // Генерируем 14 дней
+
   const days = [];
   for (let i = 0; i < 14; i++) {
     const d = new Date(weekStart);
@@ -187,14 +189,14 @@ function AdminSchedule() {
     days.push(d);
   }
 
-  // Группируем смены по дате
+
   const schedulesByDate = {};
   schedules.forEach((s) => {
     if (!schedulesByDate[s.date]) schedulesByDate[s.date] = [];
     schedulesByDate[s.date].push(s);
   });
 
-  // Сортируем смены внутри дня по времени начала
+
   Object.keys(schedulesByDate).forEach((d) => {
     schedulesByDate[d].sort((a, b) => a.start_time.localeCompare(b.start_time));
   });
@@ -202,7 +204,7 @@ function AdminSchedule() {
   const userIsOwner = isOwner();
   const canEdit = userIsOwner || hasPermission("can_edit_admin_schedule");
 
-  // Для админа: проверяет, можно ли редактировать смену
+
   const canEditShift = (schedule) => {
     if (!canEdit) return false;
     if (userIsOwner) return true;
@@ -210,11 +212,11 @@ function AdminSchedule() {
     const shiftStart = new Date(
       schedule.date + "T" + schedule.start_time + ":00",
     );
-    // Не-владелец может редактировать только будущие смены
+
     return shiftStart > now;
   };
 
-  // Для админа: можно ли создавать смену на эту дату
+
   const canCreateOnDate = (date) => {
     if (!canEdit) return false;
     if (userIsOwner) return true;
@@ -226,7 +228,7 @@ function AdminSchedule() {
 
   const handleCellClick = (date) => {
     if (!canCreateOnDate(date)) {
-      // Просто не открываем форму, без ошибки
+
       return;
     }
     setSelectedDate(formatDateKey(date));
@@ -266,7 +268,7 @@ function AdminSchedule() {
     )
       return;
     try {
-      await api.delete(`/admin-schedules/${schedule.id}`);
+      await axios.delete(`${API_URL}/admin-schedules/${schedule.id}`);
       loadData();
     } catch (err) {
       alert("Ошибка: " + (err.response?.data?.error || err.message));
@@ -282,14 +284,14 @@ function AdminSchedule() {
 
     try {
       if (editingSchedule) {
-        await api.put(`/admin-schedules/${editingSchedule.id}`, {
+        await axios.put(`${API_URL}/admin-schedules/${editingSchedule.id}`, {
           user_id: parseInt(formData.user_id),
           date: selectedDate,
           start_time: formData.start_time,
           end_time: formData.end_time,
         });
       } else {
-        await api.post(`/admin-schedules`, {
+        await axios.post(`${API_URL}/admin-schedules`, {
           user_id: parseInt(formData.user_id),
           date: selectedDate,
           start_time: formData.start_time,
@@ -356,7 +358,7 @@ function AdminSchedule() {
                 ← Пред 2 нед
               </button>
               <div className="admin-schedule-period">
-                {weekStart.getDate()} {MONTH_NAMES[weekStart.getMonth()]} –{" "}
+                {weekStart.getDate()} {MONTH_NAMES[weekStart.getMonth()]} -{" "}
                 {weekEnd.getDate()} {MONTH_NAMES[weekEnd.getMonth()]}{" "}
                 {weekEnd.getFullYear()}
               </div>
@@ -371,20 +373,6 @@ function AdminSchedule() {
               </button>
             </div>
 
-            <div className="admin-schedule-legend">
-              {admins.map((admin) => {
-                const color = getAdminColor(admin.id);
-                return (
-                  <div key={admin.id} className="admin-legend-item">
-                    <span
-                      className="admin-legend-color"
-                      style={{ background: color.bg }}
-                    ></span>
-                    <span>{shortName(admin.full_name)}</span>
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
           <div className="admin-schedule-grid">
@@ -428,7 +416,7 @@ function AdminSchedule() {
                           onClick={(e) => handleEditShift(e, s)}
                           title={
                             editable
-                              ? "Клик — редактировать"
+                              ? "Клик - редактировать"
                               : "Только владелец может редактировать"
                           }
                         >
@@ -436,7 +424,7 @@ function AdminSchedule() {
                             {shortName(s.user_full_name)}
                           </div>
                           <div className="admin-schedule-shift-time">
-                            {s.start_time}–{s.end_time}
+                            {s.start_time}-{s.end_time}
                           </div>
                           {editable && (
                             <button
@@ -462,7 +450,7 @@ function AdminSchedule() {
         </>
       )}
 
-      {/* Модальное окно назначения/редактирования смены */}
+
       {selectedDate && (
         <div className="modal-overlay" onClick={closeModal}>
           <div
@@ -551,7 +539,7 @@ function AdminSchedule() {
                     color: "#2c3e50",
                   }}
                 >
-                  В выбранное время не должно быть других смен — пересечения
+                  В выбранное время не должно быть других смен - пересечения
                   запрещены
                 </div>
               </form>

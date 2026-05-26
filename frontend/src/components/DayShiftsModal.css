@@ -120,11 +120,11 @@
   .shift-fields {
     grid-template-columns: 1fr;
   }
-  
+
   .shift-row {
     flex-direction: column;
   }
-  
+
   .btn-icon {
     width: 100%;
   }

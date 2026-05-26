@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import api, { API_URL } from '../api';
+import axios from 'axios';
 import CarSelector from './CarSelector';
 import Pagination from './Pagination';
 import './CarSelector.css';
+
+const API_URL = 'http://localhost:5000/api';
 
 function Cars() {
   const [cars, setCars] = useState([]);
@@ -21,22 +23,21 @@ function Cars() {
     color: ''
   });
 
-  // Сброс страницы при смене поиска
+
   useEffect(() => { setCurrentPage(1); }, [searchPlate]);
 
-  // Загрузка с дебаунсом
+
   useEffect(() => {
     const timer = setTimeout(() => {
       loadCars();
     }, searchPlate ? 300 : 0);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchPlate]);
 
   const loadCars = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/cars`, {
+      const response = await axios.get(`${API_URL}/cars`, {
         params: {
           page: currentPage,
           page_size: PAGE_SIZE,
@@ -47,51 +48,51 @@ function Cars() {
       setTotalCars(response.data.total || 0);
       setLoading(false);
     } catch (error) {
-      console.error('❌ Ошибка загрузки автомобилей:', error);
-      
+      console.error('Ошибка загрузки автомобилей:', error);
+
       if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-        alert('⚠️ Не удается подключиться к серверу!\n\nBackend не отвечает на ' + API_URL + '\n\nУбедитесь, что backend запущен');
+        alert('Не удается подключиться к серверу!\n\nBackend не отвечает на ' + API_URL + '\n\nУбедитесь, что backend запущен');
       }
-      
+
       setLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    console.log('🚀 Отправка данных автомобиля:', formData);
-    
+
+    console.log('Отправка данных автомобиля:', formData);
+
     try {
       if (editingCar) {
-        console.log('✏️ Обновление автомобиля ID:', editingCar.id);
-        const response = await api.put(`/cars/${editingCar.id}`, formData);
-        console.log('✅ Автомобиль обновлен:', response.data);
-        alert('✅ Автомобиль успешно обновлен!');
+        console.log('Обновление автомобиля ID:', editingCar.id);
+        const response = await axios.put(`${API_URL}/cars/${editingCar.id}`, formData);
+        console.log('Автомобиль обновлен:', response.data);
+        alert('Автомобиль успешно обновлен!');
         setEditingCar(null);
       } else {
-        console.log('➕ Создание нового автомобиля');
-        const response = await api.post(`/cars`, formData);
-        console.log('✅ Автомобиль создан:', response.data);
-        alert('✅ Автомобиль успешно добавлен!');
+        console.log('Создание нового автомобиля');
+        const response = await axios.post(`${API_URL}/cars`, formData);
+        console.log('Автомобиль создан:', response.data);
+        alert('Автомобиль успешно добавлен!');
       }
       setFormData({ license_plate: '', brand: '', model: '', color: '' });
       setShowForm(false);
       loadCars();
     } catch (error) {
-      console.error('❌ Ошибка сохранения автомобиля:', error);
-      
-      // Детальная информация об ошибке
+      console.error('Ошибка сохранения автомобиля:', error);
+
+
       if (error.response) {
-        // Сервер ответил с ошибкой
-        console.error('📛 Ответ сервера:', error.response.data);
-        console.error('📛 Статус:', error.response.status);
-        
-        // Специальная обработка для дубликата автомобиля (409 Conflict)
+
+        console.error('Ответ сервера:', error.response.data);
+        console.error('Статус:', error.response.status);
+
+
         if (error.response.status === 409) {
           const errorData = error.response.data;
           const existingCar = errorData.existing_car;
-          let message = `⚠️ ${errorData.error}\n\n`;
+          let message = `${errorData.error}\n\n`;
           if (existingCar) {
             message += `Информация о существующем автомобиле:\n`;
             message += `• Марка: ${existingCar.brand || 'не указана'}\n`;
@@ -101,22 +102,22 @@ function Cars() {
           }
           alert(message);
         } else if (error.response.status === 400 && error.response.data?.error?.includes('уже существует')) {
-          // Обработка ошибки при редактировании (новый номер занят)
-          alert(`⚠️ ${error.response.data.error}`);
+
+          alert(`${error.response.data.error}`);
         } else {
           alert(`Ошибка сервера: ${error.response.data?.error || error.response.statusText}`);
         }
       } else if (error.request) {
-        // Запрос был отправлен, но ответа не получено
-        console.error('📛 Запрос отправлен, но ответа нет:', error.request);
-        console.error('📛 Проверьте:');
-        console.error('   1. Запущен ли backend сервер (http://localhost:5000)');
-        console.error('   2. Нет ли блокировки CORS');
-        console.error('   3. Правильно ли настроен API_URL:', API_URL);
+
+        console.error('Запрос отправлен, но ответа нет:', error.request);
+        console.error('Проверьте:');
+        console.error('  1. Запущен ли backend сервер (http://localhost:5000)');
+        console.error('  2. Нет ли блокировки CORS');
+        console.error('  3. Правильно ли настроен API_URL:', API_URL);
         alert('Ошибка подключения к серверу!\n\nПроверьте:\n1. Запущен ли backend (http://localhost:5000)\n2. Нет ли ошибок в консоли backend\n3. Откройте консоль браузера (F12) для деталей');
       } else {
-        // Что-то пошло не так при настройке запроса
-        console.error('📛 Ошибка настройки запроса:', error.message);
+
+        console.error('Ошибка настройки запроса:', error.message);
         alert('Ошибка: ' + error.message);
       }
     }
@@ -137,7 +138,7 @@ function Cars() {
   const handleDelete = async (id) => {
     if (window.confirm('Удалить автомобиль?')) {
       try {
-        await api.delete(`/cars/${id}`);
+        await axios.delete(`${API_URL}/cars/${id}`);
         setSelectedCar(null);
         loadCars();
       } catch (error) {
@@ -167,7 +168,7 @@ function Cars() {
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="🔍 Поиск по гос. номеру..."
+            placeholder="Поиск по гос. номеру..."
             value={searchPlate}
             onChange={(e) => setSearchPlate(e.target.value.toUpperCase())}
             style={{
@@ -183,17 +184,17 @@ function Cars() {
           />
           {selectedCar && (
             <>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={() => handleEdit(selectedCar)}
               >
-                ✏️ Редактировать
+                 Редактировать
               </button>
-              <button 
-                className="btn btn-danger" 
+              <button
+                className="btn btn-danger"
                 onClick={() => handleDelete(selectedCar.id)}
               >
-                🗑️ Удалить
+                 Удалить
               </button>
             </>
           )}
@@ -217,7 +218,7 @@ function Cars() {
                 onChange={(e) => setFormData({ ...formData, license_plate: e.target.value.toUpperCase() })}
               />
             </div>
-            
+
             {!editingCar && (
               <div style={{ marginBottom: '1rem' }}>
                 <CarSelector
@@ -228,7 +229,7 @@ function Cars() {
                 />
               </div>
             )}
-            
+
             <div className="form-group">
               <label>Марка {!editingCar && <span style={{ fontSize: '0.8rem', color: '#6c757d' }}>(или выберите выше)</span>}</label>
               <input
@@ -278,7 +279,7 @@ function Cars() {
             </thead>
             <tbody>
               {cars.map(car => (
-                <tr 
+                <tr
                   key={car.id}
                   onClick={() => handleRowClick(car)}
                   style={{
@@ -296,7 +297,7 @@ function Cars() {
               ))}
             </tbody>
           </table>
-          <Pagination 
+          <Pagination
             currentPage={currentPage}
             totalItems={totalCars}
             pageSize={PAGE_SIZE}

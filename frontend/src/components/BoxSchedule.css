@@ -4,7 +4,7 @@
   margin: 0 auto;
 }
 
-/* Навигация */
+
 .schedule-navigation {
   display: flex;
   gap: 1rem;
@@ -16,7 +16,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Панель назначения */
+
 .assignment-panel {
   background: #e3f2fd;
   border: 2px solid #3498db;
@@ -49,7 +49,7 @@
   max-width: 400px;
 }
 
-/* Таблица расписания */
+
 .schedule-table-wrapper {
   overflow: hidden;
   background: white;
@@ -117,7 +117,7 @@
   font-size: 0.95rem;
 }
 
-/* Ячейки расписания */
+
 .schedule-cell {
   height: 100px;
   position: relative;
@@ -144,7 +144,7 @@
   opacity: 0.6;
 }
 
-/* Назначение сотрудника */
+
 .employee-assignment {
   padding: 0.6rem;
   background: #e8f5e9;
@@ -193,7 +193,7 @@
   transform: scale(1.1);
 }
 
-/* Пустая ячейка */
+
 .empty-cell {
   color: #bdc3c7;
   font-size: 0.85rem;
@@ -209,7 +209,7 @@
   font-weight: 500;
 }
 
-/* Адаптивность */
+
 @media (max-width: 1200px) {
   .schedule-navigation {
     flex-direction: column;
@@ -224,7 +224,7 @@
   }
 }
 
-/* Фиксированная панель выбора */
+
 .fixed-selection-panel {
   position: fixed;
   bottom: 0;
@@ -332,18 +332,18 @@
   .assignment-controls select {
     max-width: 100%;
   }
-  
+
   .selection-panel-content {
     flex-direction: column;
     padding: 1rem;
     gap: 1rem;
   }
-  
+
   .selection-actions {
     width: 100%;
     flex-direction: column;
   }
-  
+
   .selection-actions .btn {
     width: 100%;
   }

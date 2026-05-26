@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
-import api from "../api";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./Schedule.css";
+
+const API_URL = "http://localhost:5000/api";
 
 function PublicOccupancy() {
   const [boxes, setBoxes] = useState([]);
@@ -28,9 +30,9 @@ function PublicOccupancy() {
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
       const [boxesRes, ordersRes, schedulesRes] = await Promise.all([
-        api.get(`/boxes`),
-        api.get(`/orders/schedule`),
-        api.get(`/box-schedules`, {
+        axios.get(`${API_URL}/boxes`),
+        axios.get(`${API_URL}/orders/schedule`),
+        axios.get(`${API_URL}/box-schedules`, {
           params: { start_date: todayStr, end_date: todayStr },
         }),
       ]);
@@ -86,7 +88,6 @@ function PublicOccupancy() {
       slots.push(new Date(startTime.getTime() + i * 15 * 60 * 1000));
     }
     return slots;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentHourKey]);
 
   const formatTimeSlot = (date) => {
@@ -281,7 +282,7 @@ function PublicOccupancy() {
                           if (!pos) return null;
                           const progress = getOrderProgress(order);
                           const color = getOrderColor(order);
-                          // Берём первую услугу для подписи
+
                           const label = order.service_names
                             ? order.service_names.split(",")[0].trim()
                             : "";

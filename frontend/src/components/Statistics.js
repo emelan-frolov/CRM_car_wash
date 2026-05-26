@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../api';
+import axios from 'axios';
 import './Statistics.css';
+
+const API_URL = 'http://localhost:5000/api';
+
 
 const formatMoney = (n) => {
   return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n || 0) + ' ₽';
 };
 
-// Получение даты в формате YYYY-MM-DD
+
 const formatDate = (d) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 function Statistics() {
-  const [tab, setTab] = useState('finance'); // 'finance' | 'employees' | 'boxes'
+  const [tab, setTab] = useState('finance');
   const [period, setPeriod] = useState(() => {
     const today = new Date();
     const monthAgo = new Date(today);
@@ -23,16 +26,16 @@ function Statistics() {
       preset: 'month'
     };
   });
-  
+
   const [financeData, setFinanceData] = useState(null);
   const [employeesData, setEmployeesData] = useState(null);
   const [boxesData, setBoxesData] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+
   const setPreset = (preset) => {
     const today = new Date();
     let start;
-    
+
     if (preset === 'today') {
       start = new Date(today);
     } else if (preset === 'week') {
@@ -46,27 +49,27 @@ function Statistics() {
     } else {
       return;
     }
-    
+
     setPeriod({
       start: formatDate(start),
       end: formatDate(today),
       preset
     });
   };
-  
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const params = { start_date: period.start, end_date: period.end };
-      
+
       if (tab === 'finance') {
-        const res = await api.get(`/stats/finance`, { params });
+        const res = await axios.get(`${API_URL}/stats/finance`, { params });
         setFinanceData(res.data);
       } else if (tab === 'employees') {
-        const res = await api.get(`/stats/employees`, { params });
+        const res = await axios.get(`${API_URL}/stats/employees`, { params });
         setEmployeesData(res.data);
       } else if (tab === 'boxes') {
-        const res = await api.get(`/stats/boxes`, { params });
+        const res = await axios.get(`${API_URL}/stats/boxes`, { params });
         setBoxesData(res.data);
       }
     } catch (error) {
@@ -75,82 +78,82 @@ function Statistics() {
       setLoading(false);
     }
   }, [tab, period.start, period.end]);
-  
+
   useEffect(() => {
     loadData();
   }, [loadData]);
-  
+
   return (
     <div className="stats-page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h2 className="page-title" style={{ margin: 0 }}>Статистика</h2>
       </div>
-      
+
       <div className="stats-tabs">
-        <button 
+        <button
           className={`stats-tab ${tab === 'finance' ? 'active' : ''}`}
           onClick={() => setTab('finance')}
         >
           Финансы
         </button>
-        <button 
+        <button
           className={`stats-tab ${tab === 'employees' ? 'active' : ''}`}
           onClick={() => setTab('employees')}
         >
           Сотрудники
         </button>
-        <button 
+        <button
           className={`stats-tab ${tab === 'boxes' ? 'active' : ''}`}
           onClick={() => setTab('boxes')}
         >
           Боксы
         </button>
       </div>
-      
+
       <div className="stats-period">
         <div className="stats-period-presets">
-          <button 
+          <button
             className={`stats-period-preset ${period.preset === 'today' ? 'active' : ''}`}
             onClick={() => setPreset('today')}
           >Сегодня</button>
-          <button 
+          <button
             className={`stats-period-preset ${period.preset === 'week' ? 'active' : ''}`}
             onClick={() => setPreset('week')}
           >Неделя</button>
-          <button 
+          <button
             className={`stats-period-preset ${period.preset === 'month' ? 'active' : ''}`}
             onClick={() => setPreset('month')}
           >Месяц</button>
-          <button 
+          <button
             className={`stats-period-preset ${period.preset === 'year' ? 'active' : ''}`}
             onClick={() => setPreset('year')}
           >Год</button>
         </div>
         <div className="stats-period-dates">
-          <input 
+          <input
             type="date"
             value={period.start}
             onChange={(e) => setPeriod({ ...period, start: e.target.value, preset: 'custom' })}
           />
-          <span>—</span>
-          <input 
+          <span>-</span>
+          <input
             type="date"
             value={period.end}
             onChange={(e) => setPeriod({ ...period, end: e.target.value, preset: 'custom' })}
           />
         </div>
       </div>
-      
+
       {loading && <div className="loading">Загрузка...</div>}
-      
+
       {!loading && tab === 'finance' && financeData && (
         <FinanceTab data={financeData} />
       )}
-      
+
       {!loading && tab === 'employees' && employeesData && (
         <EmployeesTab data={employeesData} />
       )}
-      
+
       {!loading && tab === 'boxes' && boxesData && (
         <BoxesTab data={boxesData} />
       )}
@@ -158,9 +161,10 @@ function Statistics() {
   );
 }
 
+
 function FinanceTab({ data }) {
   const maxRevenue = Math.max(...(data.top_services || []).map(s => s.revenue), 1);
-  
+
   return (
     <>
       <div className="stats-cards">
@@ -178,7 +182,7 @@ function FinanceTab({ data }) {
           <div className="stats-card-value">{formatMoney(data.average_check)}</div>
         </div>
       </div>
-      
+
       <div className="stats-section">
         <h3 className="stats-section-title">Топ услуг по выручке</h3>
         {data.top_services && data.top_services.length > 0 ? (
@@ -187,7 +191,7 @@ function FinanceTab({ data }) {
               <div key={s.id} className="bar-row">
                 <div className="bar-label" title={s.name}>{s.name}</div>
                 <div className="bar-track">
-                  <div 
+                  <div
                     className="bar-fill green"
                     style={{ width: `${(s.revenue / maxRevenue) * 100}%` }}
                   />
@@ -200,7 +204,7 @@ function FinanceTab({ data }) {
           <div className="stats-empty">Нет данных за выбранный период</div>
         )}
       </div>
-      
+
       <div className="stats-section">
         <h3 className="stats-section-title">Выручка по дням</h3>
         {data.revenue_by_day && data.revenue_by_day.length > 0 ? (
@@ -215,7 +219,7 @@ function FinanceTab({ data }) {
 
 function DailyChart({ days }) {
   const maxRev = Math.max(...days.map(d => d.revenue), 1);
-  
+
   return (
     <div className="hour-chart" style={{ height: '180px' }}>
       {days.map(d => {
@@ -225,7 +229,7 @@ function DailyChart({ days }) {
         return (
           <div key={d.date} className="hour-bar" title={`${d.date}: ${formatMoney(d.revenue)} (${d.count} зак.)`}>
             <div className="hour-bar-track">
-              <div 
+              <div
                 className="hour-bar-fill"
                 style={{ height: `${height}%`, width: '100%' }}
                 data-count={`${formatMoney(d.revenue)} · ${d.count}`}
@@ -239,11 +243,12 @@ function DailyChart({ days }) {
   );
 }
 
+
 function EmployeesTab({ data }) {
   const totalSalary = data.employees.reduce((sum, e) => sum + e.salary, 0);
   const totalRevenue = data.employees.reduce((sum, e) => sum + e.orders_revenue, 0);
   const totalOrders = data.employees.reduce((sum, e) => sum + e.orders_count, 0);
-  
+
   return (
     <>
       <div className="stats-cards">
@@ -261,7 +266,7 @@ function EmployeesTab({ data }) {
           <div className="stats-card-value">{totalOrders}</div>
         </div>
       </div>
-      
+
       <div className="stats-section">
         <h3 className="stats-section-title">Зарплатная ведомость</h3>
         {data.employees.length > 0 ? (
@@ -306,15 +311,16 @@ function EmployeesTab({ data }) {
   );
 }
 
+
 function BoxesTab({ data }) {
   const maxHourCount = Math.max(...(data.by_hour || []).map(h => h.count), 1);
-  
+
   const totalOrders = data.boxes_utilization.reduce((sum, b) => sum + b.orders_count, 0);
   const totalRevenue = data.boxes_utilization.reduce((sum, b) => sum + b.revenue, 0);
   const avgUtil = data.boxes_utilization.length > 0
     ? Math.round(data.boxes_utilization.reduce((sum, b) => sum + b.utilization_percent, 0) / data.boxes_utilization.length)
     : 0;
-  
+
   return (
     <>
       <div className="stats-cards">
@@ -331,15 +337,15 @@ function BoxesTab({ data }) {
           <div className="stats-card-value">{avgUtil}%</div>
         </div>
       </div>
-      
+
       <div className="stats-section">
         <h3 className="stats-section-title">Загрузка по часам</h3>
         {data.by_hour && data.by_hour.length > 0 ? (
           <div className="hour-chart">
             {data.by_hour.map(h => (
-              <div key={h.hour} className="hour-bar" title={`${h.hour}:00 — ${h.count} заказов`}>
+              <div key={h.hour} className="hour-bar" title={`${h.hour}:00 - ${h.count} заказов`}>
                 <div className="hour-bar-track">
-                  <div 
+                  <div
                     className="hour-bar-fill"
                     style={{ height: `${(h.count / maxHourCount) * 100}%`, width: '100%' }}
                     data-count={`${h.count} зак.`}
@@ -354,7 +360,7 @@ function BoxesTab({ data }) {
           <div className="stats-empty">Нет данных за выбранный период</div>
         )}
       </div>
-      
+
       <div className="stats-section">
         <h3 className="stats-section-title">Коэффициент использования боксов</h3>
         {data.boxes_utilization.length > 0 ? (
@@ -381,7 +387,7 @@ function BoxesTab({ data }) {
                     <td className="utilization-bar-cell">
                       <div className="utilization-bar">
                         <div className="utilization-bar-track">
-                          <div 
+                          <div
                             className={`utilization-bar-fill ${cls}`}
                             style={{ width: `${b.utilization_percent}%` }}
                           />

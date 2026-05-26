@@ -9,7 +9,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import "./App.css";
-import api from "./api";
+import "./auth";
 import {
   isAuthenticated,
   isOwner,
@@ -35,7 +35,7 @@ import AdminSchedule from "./components/AdminSchedule";
 import PublicOccupancy from "./components/PublicOccupancy";
 import PublicBooking from "./components/PublicBooking";
 
-// Компонент защищённого маршрута: пускает только авторизованных
+
 function PrivateRoute({ children }) {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
@@ -43,7 +43,7 @@ function PrivateRoute({ children }) {
   return children;
 }
 
-// Маршрут только для владельца
+
 function OwnerRoute({ children }) {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
@@ -54,7 +54,7 @@ function OwnerRoute({ children }) {
   return children;
 }
 
-// Маршрут с проверкой права (владелец проходит всегда)
+
 function PermissionRoute({ permission, children }) {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
@@ -65,7 +65,7 @@ function PermissionRoute({ permission, children }) {
   return children;
 }
 
-// Шапка приложения с навигацией - показывается только при авторизации
+
 function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -220,17 +220,24 @@ function AppShell({ children }) {
 }
 
 function App() {
-  // Периодически обновляем данные текущего пользователя - чтобы изменения прав
-  // и расписания смен подхватывались автоматически без перелогина
+
+
   useEffect(() => {
     if (!isAuthenticated()) return;
 
     const refreshUser = async () => {
       try {
-        const res = await api.get('/auth/me');
-        localStorage.setItem("auth_user", JSON.stringify(res.data));
+        const res = await fetch("http://localhost:5000/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        });
+        if (res.ok) {
+          const user = await res.json();
+          localStorage.setItem("auth_user", JSON.stringify(user));
+        }
       } catch (e) {
-        // Игнорируем ошибки сети
+
       }
     };
 

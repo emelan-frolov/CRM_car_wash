@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:5000/api';
 
 function Dashboard() {
   const [stats, setStats] = useState({
@@ -16,15 +18,15 @@ function Dashboard() {
   const loadStats = async () => {
     try {
       const [clientsRes, servicesRes, ordersRes] = await Promise.all([
-        api.get(`/clients`),
-        api.get(`/services`),
-        api.get(`/orders`)
+        axios.get(`${API_URL}/clients`),
+        axios.get(`${API_URL}/services`),
+        axios.get(`${API_URL}/orders`)
       ]);
 
-      // Используем локальную дату, не UTC
+
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const todayOrders = ordersRes.data.filter(order => 
+      const todayOrders = ordersRes.data.filter(order =>
         order.created_at.startsWith(today)
       ).length;
 
@@ -42,7 +44,7 @@ function Dashboard() {
   return (
     <div>
       <h2 className="page-title">Панель управления</h2>
-      
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
         <div className="card" style={{ textAlign: 'center' }}>
           <h3 style={{ color: '#3498db', fontSize: '2.5rem', margin: '0.5rem 0' }}>{stats.clients}</h3>
