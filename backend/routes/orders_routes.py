@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 from flask import Blueprint, jsonify, request
 from sqlalchemy.orm import joinedload
@@ -8,6 +8,7 @@ from models import Box, BoxSchedule, Client, Order, OrderService, Service
 
 
 bp = Blueprint("orders", __name__)
+BLOCKING_ORDER_STATUSES = ["pending", "in_progress", "completed"]
 
 
 @bp.route("/api/orders", methods=["GET"])
@@ -103,7 +104,7 @@ def get_schedule():
         .filter(
             Order.scheduled_time >= earliest_start,
             Order.scheduled_time < end_time,
-            Order.status.in_(["pending", "in_progress", "completed"]),
+        Order.status.in_(BLOCKING_ORDER_STATUSES),
         )
         .all()
     )
@@ -149,6 +150,10 @@ def create_order():
     box_id = data.get("box_id")
     if not box_id:
         return jsonify({"error": "Выберите бокс"}), 400
+    try:
+        box_id = int(box_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Некорректный бокс"}), 400
 
     if not data.get("scheduled_time"):
         return jsonify({"error": "Выберите дату и время записи"}), 400
@@ -172,7 +177,7 @@ def create_order():
     order_end = scheduled_time + timedelta(minutes=total_duration)
     existing_orders = Order.query.filter(
         Order.box_id == box_id,
-        Order.status.in_(["pending", "in_progress"]),
+        Order.status.in_(BLOCKING_ORDER_STATUSES),
         Order.scheduled_time.isnot(None),
     ).all()
 
@@ -264,16 +269,22 @@ def delete_order(id):
 
 @bp.route("/api/orders/available-slots-today", methods=["POST"])
 def get_available_slots_today():
-    data = request.json
+    data = request.json or {}
     total_duration = data.get("total_duration", 0)
 
-    if not total_duration:
+    try:
+        total_duration = int(total_duration)
+    except (TypeError, ValueError):
+        total_duration = 0
+
+    if total_duration <= 0:
         return jsonify({"error": "Требуется total_duration"}), 400
 
-    work_start_hour = 10
-    work_end_hour = 22
-
-    boxes = Box.query.filter_by(is_active=True).order_by(Box.order_index).all()
+    boxes = (
+        Box.query.filter(Box.is_active.is_(True), Box.order_index >= 0)
+        .order_by(Box.order_index)
+        .all()
+    )
     if not boxes:
         return jsonify({"error": "Нет активных боксов"}), 400
 
@@ -282,73 +293,48 @@ def get_available_slots_today():
 
     start_datetime = datetime.combine(today, datetime.min.time())
     end_datetime = datetime.combine(today, datetime.max.time())
+    work_start_datetime = datetime.combine(today, time(10, 0))
+    work_end_datetime = datetime.combine(today, time(22, 0))
 
     orders = Order.query.filter(
         Order.scheduled_time >= start_datetime,
         Order.scheduled_time <= end_datetime,
-        Order.status.in_(["pending", "in_progress"]),
+        Order.status.in_(BLOCKING_ORDER_STATUSES),
     ).all()
 
-    occupied = {}
+    occupied_by_box = {}
     for order in orders:
         if not order.scheduled_time or not order.total_duration or not order.box_id:
             continue
 
         order_start = order.scheduled_time
         order_end = order_start + timedelta(minutes=order.total_duration)
-
-        current = order_start
-        while current < order_end:
-            key = (order.box_id, current.hour, current.minute)
-            occupied[key] = True
-            current += timedelta(minutes=15)
+        occupied_by_box.setdefault(order.box_id, []).append((order_start, order_end))
 
     result = []
 
+    search_start = current_time.replace(second=0, microsecond=0)
+    if search_start < current_time:
+        search_start += timedelta(minutes=1)
+    minutes_to_add = (15 - search_start.minute % 15) % 15
+    search_start += timedelta(minutes=minutes_to_add)
+    if search_start < work_start_datetime:
+        search_start = work_start_datetime
+
     for box in boxes:
-
-        current_minutes = current_time.minute
-        rounded_minutes = ((current_minutes + 14) // 15) * 15
-
-        if rounded_minutes == 60:
-            search_time = current_time.replace(
-                hour=current_time.hour + 1, minute=0, second=0, microsecond=0
-            )
-        else:
-            search_time = current_time.replace(
-                minute=rounded_minutes, second=0, microsecond=0
-            )
-
-        if search_time.hour < work_start_hour:
-            search_time = datetime.combine(
-                today, datetime.strptime("10:00", "%H:%M").time()
-            )
-
+        search_time = search_start
         available_slots = []
 
-        while search_time.hour < work_end_hour or (
-            search_time.hour == work_end_hour and search_time.minute == 0
-        ):
-
-            if search_time < current_time:
-                search_time += timedelta(minutes=15)
-                continue
-
-            is_free = True
+        while search_time < work_end_datetime:
             end_time = search_time + timedelta(minutes=total_duration)
 
-            work_end_datetime = datetime.combine(
-                today, datetime.strptime(f"{work_end_hour }:00", "%H:%M").time()
-            )
             if end_time > work_end_datetime:
                 break
 
-            check_time = search_time
-            while check_time < end_time:
-                if (box.id, check_time.hour, check_time.minute) in occupied:
-                    is_free = False
-                    break
-                check_time += timedelta(minutes=15)
+            is_free = all(
+                end_time <= busy_start or search_time >= busy_end
+                for busy_start, busy_end in occupied_by_box.get(box.id, [])
+            )
 
             if is_free:
                 available_slots.append(search_time.strftime("%H:%M"))

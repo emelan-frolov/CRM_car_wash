@@ -4,7 +4,7 @@ import './Booking.css';
 import CarSelector from './CarSelector';
 import './CarSelector.css';
 
-const API_URL = process.env.REACT_APP_API_URL || "/api";
+const API_URL = 'http://localhost:5000/api';
 
 
 const formatPhoneNumber = (value) => {

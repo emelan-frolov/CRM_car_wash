@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || "/api";
+const API_URL = 'http://localhost:5000/api';
 
 function Settings() {
   const [boxes, setBoxes] = useState([]);
@@ -160,14 +160,6 @@ function Settings() {
         )}
       </div>
 
-      <div className="card" style={{ marginTop: '2rem' }}>
-        <h3>Информация</h3>
-        <p style={{ marginTop: '1rem', color: '#7f8c8d' }}>
-          • Боксы отображаются в расписании в порядке создания<br/>
-          • Деактивированный бокс можно снова активировать<br/>
-          • При удалении бокс скрывается из системы, но старые заказы сохраняют привязку к нему
-        </p>
-      </div>
     </div>
   );
 }

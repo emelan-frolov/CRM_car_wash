@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { hasPermission } from "../auth";
 
-const API_URL = process.env.REACT_APP_API_URL || "/api";
+const API_URL = "http://localhost:5000/api";
 
 function Positions() {
   const [positions, setPositions] = useState([]);

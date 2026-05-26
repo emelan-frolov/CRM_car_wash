@@ -7,6 +7,7 @@ from models import Box, BoxSchedule, Car, Client, Order, OrderService, Service
 
 
 bp = Blueprint("booking", __name__)
+BLOCKING_ORDER_STATUSES = ["pending", "in_progress", "completed"]
 
 
 @bp.route("/api/booking/availability", methods=["GET"])
@@ -19,7 +20,7 @@ def get_booking_availability():
     orders = Order.query.filter(
         Order.scheduled_time >= start_date,
         Order.scheduled_time < end_date,
-        Order.status.in_(["pending", "in_progress"]),
+        Order.status.in_(BLOCKING_ORDER_STATUSES),
     ).all()
 
     active_boxes_count = Box.query.filter_by(is_active=True).count()
@@ -123,7 +124,7 @@ def get_available_timeslots():
     orders = Order.query.filter(
         Order.scheduled_time >= start_datetime,
         Order.scheduled_time <= end_datetime,
-        Order.status.in_(["pending", "in_progress"]),
+        Order.status.in_(BLOCKING_ORDER_STATUSES),
     ).all()
 
     occupied = {}
@@ -289,6 +290,10 @@ def public_book():
 
     if not box_id:
         return jsonify({"error": "Выберите бокс"}), 400
+    try:
+        box_id = int(box_id)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Некорректный бокс"}), 400
 
     if not scheduled_time_str:
         return jsonify({"error": "Укажите дату и время"}), 400
@@ -322,7 +327,7 @@ def public_book():
     order_end = scheduled_time + timedelta(minutes=total_duration)
     existing_orders = Order.query.filter(
         Order.box_id == box_id,
-        Order.status.in_(["pending", "in_progress"]),
+        Order.status.in_(BLOCKING_ORDER_STATUSES),
         Order.scheduled_time.isnot(None),
     ).all()
 

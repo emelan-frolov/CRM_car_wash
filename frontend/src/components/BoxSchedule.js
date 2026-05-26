@@ -4,7 +4,7 @@ import "./BoxSchedule.css";
 import DayShiftsModal from "./DayShiftsModal";
 import { hasPermission } from "../auth";
 
-const API_URL = process.env.REACT_APP_API_URL || "/api";
+const API_URL = "http://localhost:5000/api";
 
 
 const formatShortName = (fullName) => {
@@ -348,40 +348,6 @@ function BoxSchedule() {
           </div>
         </div>
       )}
-
-      <div className="card" style={{ marginTop: "2rem" }}>
-        <h3>Инструкция</h3>
-        <ul style={{ marginTop: "1rem", color: "#7f8c8d", lineHeight: "1.8" }}>
-          <li>
-            Таблица показывает текущую неделю (7 дней, начиная с понедельника)
-          </li>
-          <li>
-            Используйте кнопки "← Предыдущая неделя" / "Следующая неделя →" для
-            навигации
-          </li>
-          <li>Кнопка "Сегодня" возвращает к текущей неделе</li>
-          <li>Сегодняшний день выделен слегка желтым цветом</li>
-          <li>
-            <strong>Обычный клик</strong> на ячейку - открыть окно настройки
-            смен для одной даты
-          </li>
-          <li>
-            <strong>Ctrl+Клик (Cmd+Клик на Mac)</strong> - выбрать несколько дат{" "}
-            <strong>одного бокса</strong> для массового назначения
-          </li>
-          <li>
-            Важно: Можно выбирать только ячейки одного бокса (сотрудник не может
-            работать одновременно в нескольких боксах)
-          </li>
-          <li>
-            После выбора нескольких ячеек нажмите "Настроить смены для выбранных
-            дат"
-          </li>
-          <li>Настроенные смены будут применены ко всем выбранным датам</li>
-          <li>Нажмите "×" на смене чтобы удалить её</li>
-          <li>Прошедшие даты нельзя редактировать (серые)</li>
-        </ul>
-      </div>
 
       <DayShiftsModal
         isOpen={showShiftsModal}

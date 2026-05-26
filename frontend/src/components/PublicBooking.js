@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const API_URL = process.env.REACT_APP_API_URL || "/api";
+const API_URL = 'http://localhost:5000/api';
 
 const fmt = (v) => {
   const d = v.replace(/\D/g, '').slice(0, 11);

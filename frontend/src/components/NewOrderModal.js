@@ -4,7 +4,7 @@ import './NewOrderModal.css';
 import CarSelector from './CarSelector';
 import './CarSelector.css';
 
-const API_URL = process.env.REACT_APP_API_URL || "/api";
+const API_URL = 'http://localhost:5000/api';
 
 
 const formatPhoneNumber = (value) => {
@@ -510,7 +510,12 @@ function NewOrderModal({ isOpen, onClose, onSuccess, boxes: propBoxes, services:
                             const newServiceIds = e.target.checked
                               ? [...orderData.service_ids, service.id]
                               : orderData.service_ids.filter(id => id !== service.id);
-                            setOrderData({ ...orderData, service_ids: newServiceIds });
+                            setOrderData({
+                              ...orderData,
+                              service_ids: newServiceIds,
+                              box_id: '',
+                              scheduled_time: ''
+                            });
                           }}
                           style={{
                             marginTop: '0.25rem',

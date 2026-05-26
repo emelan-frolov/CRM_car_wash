@@ -1,11 +1,5 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || '';
-
-if (API_URL) {
-  axios.defaults.baseURL = API_URL;
-}
-
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 

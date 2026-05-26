@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ChangePasswordModal from "./ChangePasswordModal";
 
-const API_URL = process.env.REACT_APP_API_URL || "/api";
+const API_URL = "http://localhost:5000/api";
 
 function UsersAdmin() {
   const [users, setUsers] = useState([]);
