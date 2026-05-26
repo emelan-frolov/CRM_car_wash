@@ -96,14 +96,14 @@ function Schedule() {
 
     let startTime = new Date(now.getTime() - 2 * 60 * 60 * 1000);
     startTime.setMinutes(0, 0, 0);
-    let endTime = new Date(startTime.getTime() + 6 * 60 * 60 * 1000);
+    let endTime = new Date(startTime.getTime() + 10 * 60 * 60 * 1000);
 
 
     if (startTime < workStart) startTime = new Date(workStart);
     if (endTime > workEnd) endTime = new Date(workEnd);
 
 
-    const desiredDurationMs = 6 * 60 * 60 * 1000;
+    const desiredDurationMs = 10 * 60 * 60 * 1000;
     if (endTime - startTime < desiredDurationMs) {
       const newStart = new Date(endTime.getTime() - desiredDurationMs);
       if (newStart >= workStart) startTime = newStart;
