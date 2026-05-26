@@ -3,7 +3,7 @@ import axios from "axios";
 import Pagination from "./Pagination";
 import { hasPermission } from "../auth";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = process.env.REACT_APP_API_URL || "/api";
 
 function Services() {
   const [services, setServices] = useState([]);

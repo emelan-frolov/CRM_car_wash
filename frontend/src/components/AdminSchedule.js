@@ -3,7 +3,7 @@ import axios from "axios";
 import { isOwner, hasPermission } from "../auth";
 import "./AdminSchedule.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = process.env.REACT_APP_API_URL || "/api";
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTH_NAMES = [
