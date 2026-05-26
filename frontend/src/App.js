@@ -227,7 +227,8 @@ function App() {
 
     const refreshUser = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/auth/me", {
+        const apiBaseUrl = process.env.REACT_APP_API_URL || "/api";
+        const res = await fetch(`${apiBaseUrl}/auth/me`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
           },

@@ -4,7 +4,7 @@ import EmployeeCalendar from "./EmployeeCalendar";
 import Pagination from "./Pagination";
 import { hasPermission } from "../auth";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = process.env.REACT_APP_API_URL || "/api";
 
 
 const formatPhoneNumber = (value) => {
